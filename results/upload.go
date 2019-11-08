@@ -11,7 +11,7 @@ import (
 
 	report "github.com/adevinta/vulcan-report"
 
-	"github.com/Sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 )
 
 //ReportData represents the payload for report upload requests

@@ -5,7 +5,7 @@ import (
 	"errors"
 	"sync"
 
-	"github.com/Sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 )
 
 var errInconsistent = errors.New("error compensating local status, the check state was left inconsistent")

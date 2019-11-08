@@ -8,7 +8,7 @@ import (
 
 	"github.com/adevinta/vulcan-agent/check"
 
-	"github.com/Sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"github.com/lestrrat-go/backoff"
 )
 

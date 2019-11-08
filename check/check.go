@@ -7,7 +7,7 @@ import (
 
 	report "github.com/adevinta/vulcan-report"
 
-	"github.com/Sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 )
 
 // Constants defining the possible statuses for a check job.

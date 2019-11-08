@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/Sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 
 	"github.com/adevinta/vulcan-agent/check"
 )

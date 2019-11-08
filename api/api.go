@@ -14,7 +14,7 @@ import (
 	"github.com/adevinta/vulcan-agent/results"
 	"github.com/adevinta/vulcan-agent/scheduler"
 
-	"github.com/Sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"github.com/julienschmidt/httprouter"
 )
 

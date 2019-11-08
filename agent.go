@@ -6,7 +6,7 @@ import (
 	"github.com/adevinta/vulcan-agent/check"
 	"github.com/adevinta/vulcan-agent/config"
 
-	"github.com/Sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 )
 
 // Constants defining environment variables that a check expects.
