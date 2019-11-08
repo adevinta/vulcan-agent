@@ -9,6 +9,7 @@ require (
 	github.com/adevinta/dockerutils v0.0.0-20190826104125-915f26bde8e5
 	github.com/adevinta/vulcan-report v0.0.0-20190503133936-d8a2d4cb18ff
 	github.com/aws/aws-sdk-go v1.25.30
+	github.com/danfaizer/gowse v0.0.0-20190820120814-8f5010580eaf
 	github.com/docker/distribution v2.7.1+incompatible // indirect
 	github.com/docker/docker v1.13.1
 	github.com/docker/go-connections v0.4.0 // indirect
