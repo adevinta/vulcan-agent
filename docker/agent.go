@@ -291,6 +291,7 @@ func (a *Agent) getRunConfig(job check.Job) docker.RunConfig {
 	checktypeName, checktypeVersion := getChecktypeInfo(job.Image)
 	logLevel := a.config.Check.LogLevel
 
+	a.log.WithFields(logrus.Fields{"variables": job.RequiredVars}).Debug("fetching check variables from configuration")
 	vars := dockerVars(job.RequiredVars, a.config.Check.Vars)
 	return docker.RunConfig{
 		ContainerConfig: &container.Config{
