@@ -205,11 +205,18 @@ func MainWithExitCode(factory agent.AgentFactory) int {
 	}
 
 	l.Info("connecting agent to stream")
-
 	streamTimeout := time.Duration(cfg.Stream.Timeout) * time.Second
+	// Set a default interval for the stream retries. A 0 seconds interval is
+	// not allowed.
+	if cfg.Stream.RetryInterval == 0 {
+		cfg.Stream.RetryInterval = 5
+	}
+	sInterval := time.Duration(cfg.Stream.RetryInterval) * time.Second
 	strm, err := stream.New(
 		agentCtx, agentCancel, agt, storage,
 		cfg.Stream.Endpoint, streamTimeout, l,
+		cfg.Stream.Retries,
+		sInterval,
 	)
 	if err != nil {
 		l.WithError(err).Error("error connecting agent to stream")

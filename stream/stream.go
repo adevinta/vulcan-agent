@@ -8,8 +8,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/sirupsen/logrus"
 	"github.com/gorilla/websocket"
+	"github.com/sirupsen/logrus"
 
 	agent "github.com/adevinta/vulcan-agent"
 	"github.com/adevinta/vulcan-agent/check"
@@ -31,16 +31,17 @@ const BufLen = 10
 
 // Stream represents a stream
 type Stream struct {
-	ctx      context.Context
-	cancel   context.CancelFunc
-	agent    agent.Agent
-	storage  check.Storage
-	status   string
-	endpoint string
-	stream   *websocket.Conn
-	timeout  time.Duration
-	events   chan Message
-	log      *logrus.Entry
+	ctx          context.Context
+	cancel       context.CancelFunc
+	agent        agent.Agent
+	storage      check.Storage
+	status       string
+	endpoint     string
+	stream       *websocket.Conn
+	streamDialer *WSDialerWithRetries
+	timeout      time.Duration
+	events       chan Message
+	log          *logrus.Entry
 }
 
 // Message represents a Stream message
@@ -53,24 +54,26 @@ type Message struct {
 // New initializes and connects a new Stream
 func New(ctx context.Context, cancel context.CancelFunc,
 	agent agent.Agent, storage check.Storage, endpoint string,
-	timeout time.Duration, log *logrus.Entry) (Stream, error) {
+	timeout time.Duration, log *logrus.Entry, retries int, retryInterval time.Duration) (Stream, error) {
 
-	conn, _, err := websocket.DefaultDialer.Dial(endpoint, http.Header{})
+	dialer := NewWSDialerWithRetries(websocket.DefaultDialer, log.WithField("stream", "dialer"), retries, retryInterval)
+	conn, _, err := dialer.Dial(endpoint, http.Header{})
 	if err != nil {
 		return Stream{}, err
 	}
 	events := make(chan Message, BufLen)
 	s := Stream{
-		ctx:      ctx,
-		cancel:   cancel,
-		agent:    agent,
-		storage:  storage,
-		status:   StatusConnecting,
-		endpoint: endpoint,
-		stream:   conn,
-		events:   events,
-		timeout:  timeout,
-		log:      log,
+		ctx:          ctx,
+		cancel:       cancel,
+		agent:        agent,
+		storage:      storage,
+		status:       StatusConnecting,
+		endpoint:     endpoint,
+		stream:       conn,
+		streamDialer: dialer,
+		events:       events,
+		timeout:      timeout,
+		log:          log,
 	}
 
 	return s, nil
@@ -141,7 +144,7 @@ func (s *Stream) connect(connected func(Message) bool) <-chan error {
 func (s *Stream) reconnect() error {
 	s.setStatus(StatusReconnecting)
 	s.log.Warn("stream reconnecting")
-	conn, _, err := websocket.DefaultDialer.Dial(s.endpoint, http.Header{})
+	conn, _, err := s.streamDialer.Dial(s.endpoint, http.Header{})
 	if err != nil {
 		return err
 	}

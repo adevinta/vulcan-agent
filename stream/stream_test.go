@@ -10,21 +10,18 @@ import (
 	"testing"
 	"time"
 
-	"github.com/sirupsen/logrus"
 	"github.com/danfaizer/gowse"
+	"github.com/sirupsen/logrus"
 
 	agent "github.com/adevinta/vulcan-agent"
 	"github.com/adevinta/vulcan-agent/check"
 )
 
 const (
-	streamPath    = "stream"
 	streamName    = "events"
 	streamTimeout = 2 * time.Second
-
-	pingInterval = 1 * time.Second
-
-	waitTime = 100 * time.Millisecond
+	pingInterval  = 1 * time.Second
+	waitTime      = 100 * time.Millisecond
 )
 
 var (
@@ -169,7 +166,8 @@ func TestStreamActions(t *testing.T) {
 	stor := check.NewMemoryStorage()
 	a := TestAgent{id: knownAgentID, storage: &stor, jobs: make(map[string]check.Job), log: l}
 	agentCtx, agentCancel := context.WithCancel(context.Background())
-	s, err := New(agentCtx, agentCancel, &a, &stor, wsURL.String(), streamTimeout, l)
+	s, err := New(agentCtx, agentCancel, &a, &stor, wsURL.String(),
+		streamTimeout, l, 1, time.Duration(1)*time.Second)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -301,7 +299,8 @@ func TestStreamConnectTimeout(t *testing.T) {
 	stor := check.NewMemoryStorage()
 	a := TestAgent{id: knownAgentID, storage: &stor, jobs: make(map[string]check.Job), log: l}
 	agentCtx, agentCancel := context.WithCancel(context.Background())
-	s, err := New(agentCtx, agentCancel, &a, &stor, wsURL.String(), streamTimeout, l)
+	s, err := New(agentCtx, agentCancel, &a, &stor, wsURL.String(),
+		streamTimeout, l, 1, time.Duration(1)*time.Second)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -349,7 +348,8 @@ func TestStreamHandleRegister(t *testing.T) {
 	stor := check.NewMemoryStorage()
 	a := TestAgent{id: knownAgentID, storage: &stor, jobs: make(map[string]check.Job), log: l}
 	agentCtx, agentCancel := context.WithCancel(context.Background())
-	s, err := New(agentCtx, agentCancel, &a, &stor, wsURL.String(), streamTimeout, l)
+	s, err := New(agentCtx, agentCancel, &a, &stor, wsURL.String(),
+		streamTimeout, l, 1, time.Duration(1)*time.Second)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -405,7 +405,8 @@ func TestStreamHandleRegisterMalformedMessage(t *testing.T) {
 	stor := check.NewMemoryStorage()
 	a := TestAgent{id: knownAgentID, storage: &stor, jobs: make(map[string]check.Job), log: l}
 	agentCtx, agentCancel := context.WithCancel(context.Background())
-	s, err := New(agentCtx, agentCancel, &a, &stor, wsURL.String(), streamTimeout, l)
+	s, err := New(agentCtx, agentCancel, &a, &stor, wsURL.String(), streamTimeout,
+		l, 1, time.Duration(1)*time.Second)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -461,7 +462,8 @@ func TestStreamHandleRegisterAgentDone(t *testing.T) {
 	stor := check.NewMemoryStorage()
 	a := TestAgent{id: knownAgentID, storage: &stor, jobs: make(map[string]check.Job), log: l}
 	agentCtx, agentCancel := context.WithCancel(context.Background())
-	s, err := New(agentCtx, agentCancel, &a, &stor, wsURL.String(), streamTimeout, l)
+	s, err := New(agentCtx, agentCancel, &a, &stor, wsURL.String(),
+		streamTimeout, l, 1, time.Duration(1)*time.Second)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -503,7 +505,8 @@ func TestStreamHandleRegisterTimeout(t *testing.T) {
 	a := TestAgent{id: knownAgentID, storage: &stor, jobs: make(map[string]check.Job), log: l}
 	agentCtx, agentCancel := context.WithCancel(context.Background())
 
-	s, err := New(agentCtx, agentCancel, &a, &stor, wsURL.String(), streamTimeout, l)
+	s, err := New(agentCtx, agentCancel, &a, &stor, wsURL.String(), streamTimeout, l,
+		1, time.Duration(1)*time.Second)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -541,7 +544,8 @@ func TestStreamReconnect(t *testing.T) {
 	stor := check.NewMemoryStorage()
 	a := TestAgent{id: knownAgentID, storage: &stor, jobs: make(map[string]check.Job), log: l}
 	agentCtx, agentCancel := context.WithCancel(context.Background())
-	s, err := New(agentCtx, agentCancel, &a, &stor, wsURL.String(), streamTimeout, l)
+	s, err := New(agentCtx, agentCancel, &a, &stor, wsURL.String(), streamTimeout,
+		l, 1, time.Duration(1)*time.Second)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -638,7 +642,8 @@ func TestStreamDisconnect(t *testing.T) {
 	stor := check.NewMemoryStorage()
 	a := TestAgent{id: knownAgentID, storage: &stor, jobs: make(map[string]check.Job), log: l}
 	agentCtx, agentCancel := context.WithCancel(context.Background())
-	s, err := New(agentCtx, agentCancel, &a, &stor, wsURL.String(), streamTimeout, l)
+	s, err := New(agentCtx, agentCancel, &a, &stor, wsURL.String(), streamTimeout, l,
+		2, time.Duration(1)*time.Second)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -721,7 +726,8 @@ func TestStreamCancel(t *testing.T) {
 	stor := check.NewMemoryStorage()
 	a := TestAgent{id: knownAgentID, storage: &stor, jobs: make(map[string]check.Job), log: l}
 	agentCtx, agentCancel := context.WithCancel(context.Background())
-	s, err := New(agentCtx, agentCancel, &a, &stor, wsURL.String(), streamTimeout, l)
+	s, err := New(agentCtx, agentCancel, &a, &stor, wsURL.String(), streamTimeout, l,
+		1, time.Duration(1)*time.Second)
 	if err != nil {
 		t.Fatal(err)
 	}

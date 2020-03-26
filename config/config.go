@@ -43,8 +43,10 @@ type PersistenceConfig struct {
 
 // StreamConfig defines the configuration for the event stream.
 type StreamConfig struct {
-	Endpoint string `toml:"endpoint"`
-	Timeout  int    `toml:"timeout"`
+	Endpoint      string `toml:"endpoint"`
+	Timeout       int    `toml:"timeout"`
+	Retries       int    `toml:"retries"`
+	RetryInterval int    `toml:"retry_interval"`
 }
 
 // UploaderConfig defines the configuration for the results service.
