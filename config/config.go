@@ -60,6 +60,7 @@ type SQSConfig struct {
 	PollingInterval int    `toml:"polling_interval"`
 	Endpoint        string `toml:"endpoint"`
 	Region          string `toml:"region"`
+	QueueName       string `toml:"queue_name"`
 }
 
 // APIConfig defines the configuration for the agent API.
