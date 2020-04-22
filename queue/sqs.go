@@ -2,10 +2,11 @@ package queue
 
 import (
 	"fmt"
-	"strings"
 	"time"
 
+	"github.com/adevinta/vulcan-agent/config"
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/arn"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/sqs"
 )
@@ -28,45 +29,55 @@ type sqsMessage struct {
 	mgr           *SQSQueueManager
 }
 
-type queueData struct {
-	region string
-	name   string
-}
-
 // NewSQSQueueManager creates a new queue manager that reads messages from AWS SQS.
 // The capacity channel sends the current capacity of the scheduler so
 // that the queue manager can read the appropriate amount of messages.
 // The pause channel sends the current paused status of the scheduler
 // so that the queue manager can pause and resume reading messages.
-func NewSQSQueueManager(queueARN string, pollTime time.Duration, endpoint string, region string, capacity chan int, pause chan bool) (*SQSQueueManager, error) {
+func NewSQSQueueManager(queueARN string, c config.SQSConfig, capacity chan int, pause chan bool) (*SQSQueueManager, error) {
 	sess, err := session.NewSession()
 	if err != nil {
 		return nil, fmt.Errorf("error creating SQS session: %v", err)
 	}
 
-	qd := parseQueueARN(queueARN)
+	// Use config values first for region and queue name.
+	region := c.Region
+	queueName := c.QueueName
+
+	arn, err := arn.Parse(queueARN)
+	if err != nil {
+		return nil, fmt.Errorf("error parsing SQS queue ARN: %v", err)
+	}
+	// Pick queue ARN region if not set in config.
 	if region == "" {
-		region = qd.region
+		region = arn.Region
+	}
+	// Use 'eu-west-1' region as default and last option.
+	if region == "" {
+		region = "eu-west-1"
+	}
+	// If queue name is not provided by config, get it from queue ARN.
+	if queueName == "" {
+		queueName = arn.Resource
 	}
 
-	svc := sqs.New(sess, aws.NewConfig().WithRegion(region))
-
-	if endpoint != "" {
-		svc = sqs.New(sess, aws.NewConfig().WithRegion(region).WithEndpoint(endpoint))
+	srv := sqs.New(sess, aws.NewConfig().WithRegion(region))
+	if c.Endpoint != "" {
+		srv = sqs.New(sess, aws.NewConfig().WithRegion(region).WithEndpoint(c.Endpoint))
 	}
 
 	params := &sqs.GetQueueUrlInput{
-		QueueName: aws.String(qd.name),
+		QueueName: aws.String(queueName),
 	}
-	resp, err := svc.GetQueueUrl(params)
+	resp, err := srv.GetQueueUrl(params)
 	if err != nil {
 		return nil, fmt.Errorf("error retrieving SQS queue URL: %v", err)
 	}
 
 	qm := &SQSQueueManager{
-		svc:      svc,
+		svc:      srv,
 		queueURL: *resp.QueueUrl,
-		pollTime: pollTime,
+		pollTime: time.Duration(c.PollingInterval) * time.Second,
 		done:     make(chan bool),
 		capacity: capacity,
 		pause:    pause,
@@ -157,14 +168,4 @@ func (msg *sqsMessage) Delete() error {
 	}
 
 	return nil
-}
-
-func parseQueueARN(queueARN string) queueData {
-	arn := strings.Split(queueARN, ":")
-	region := arn[3]
-	name := arn[5]
-	return queueData{
-		name:   name,
-		region: region,
-	}
 }

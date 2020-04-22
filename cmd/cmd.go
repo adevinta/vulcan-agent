@@ -134,8 +134,7 @@ func MainWithExitCode(factory agent.AgentFactory) int {
 
 	jobs := scheduler.NewJobScheduler(cfg.Scheduler.ConcurrentJobs, capacityChan, pauseChan)
 
-	pollingInterval := time.Duration(cfg.SQS.PollingInterval) * time.Second
-	sqs, err := queue.NewSQSQueueManager(jobqueueARN, pollingInterval, cfg.SQS.Endpoint, cfg.SQS.Region, capacityChan, pauseChan)
+	sqs, err := queue.NewSQSQueueManager(jobqueueARN, cfg.SQS, capacityChan, pauseChan)
 	if err != nil {
 		l.WithError(err).Error("error connecting agent to SQS queue")
 		return 1
