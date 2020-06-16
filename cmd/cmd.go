@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/sirupsen/logrus"
@@ -141,6 +142,17 @@ func MainWithExitCode(factory agent.AgentFactory) int {
 		return 1
 	}
 
+	// Parse DataDog config.
+	// If metrics are enabled, export config as env variables
+	// for metrics client constructor.
+	if cfg.DataDog.Enabled {
+		os.Setenv("DOGSTATSD_ENABLED", "true")
+		statsdAddr := strings.Split(cfg.DataDog.Statsd, ":")
+		if len(statsdAddr) == 2 {
+			os.Setenv("DOGSTATSD_HOST", statsdAddr[0])
+			os.Setenv("DOGSTATSD_PORT", statsdAddr[1])
+		}
+	}
 	metricsClient, err := metrics.NewClient()
 	if err != nil {
 		l.WithError(err).Error("error creating metrics client")

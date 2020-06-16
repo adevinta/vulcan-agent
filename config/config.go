@@ -17,6 +17,7 @@ type Config struct {
 	API         APIConfig         `toml:"api"`
 	Check       CheckConfig       `toml:"check"`
 	Runtime     RuntimeConfig     `toml:"runtime"`
+	DataDog     DatadogConfig     `toml:"datadog"`
 }
 
 // AgentConfig defines the higher level configuration for the agent.
@@ -123,6 +124,12 @@ type ContextConfig struct {
 type CredentialsConfig struct {
 	Name  string `toml:"name"`
 	Token string `toml:"token"`
+}
+
+// DatadogConfig defines the configuration for DataDog.
+type DatadogConfig struct {
+	Enabled bool   `toml:"enabled"`
+	Statsd  string `toml:"dogstatsd"`
 }
 
 // ReadConfig reads and parses a configuration file.
