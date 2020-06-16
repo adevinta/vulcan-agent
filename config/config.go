@@ -128,7 +128,7 @@ type CredentialsConfig struct {
 
 // DatadogConfig defines the configuration for DataDog.
 type DatadogConfig struct {
-	Enabled bool   `toml:"enabled"`
+	Enabled bool   `toml:"metrics_enabled"`
 	Statsd  string `toml:"dogstatsd"`
 }
 
