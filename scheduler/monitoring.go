@@ -2,11 +2,13 @@ package scheduler
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/sirupsen/logrus"
 
 	"github.com/adevinta/vulcan-agent/check"
+	metrics "github.com/adevinta/vulcan-metrics-client"
 )
 
 func (s *Scheduler) heartbeat() {
@@ -29,7 +31,16 @@ func (s *Scheduler) heartbeat() {
 
 func (s *Scheduler) monitor(job check.Job) {
 	// Unschedule job when finished.
-	defer s.jobs.Done()
+	defer func() {
+		s.jobs.Done()
+		// Decrement running checks metric for agent.
+		s.metricsClient.Push(metrics.Metric{
+			Name:  "vulcan.scan.check.running",
+			Typ:   metrics.Gauge,
+			Value: -1,
+			Tags:  []string{"component:agent", fmt.Sprint("agentid:", s.agent.ID())},
+		})
+	}()
 
 	l := s.log.WithFields(logrus.Fields{"check_id": job.CheckID})
 

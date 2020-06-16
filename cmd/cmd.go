@@ -17,6 +17,7 @@ import (
 	"github.com/adevinta/vulcan-agent/results"
 	"github.com/adevinta/vulcan-agent/scheduler"
 	"github.com/adevinta/vulcan-agent/stream"
+	metrics "github.com/adevinta/vulcan-metrics-client"
 )
 
 var version string
@@ -140,12 +141,19 @@ func MainWithExitCode(factory agent.AgentFactory) int {
 		return 1
 	}
 
+	metricsClient, err := metrics.NewClient()
+	if err != nil {
+		l.WithError(err).Error("error creating metrics client")
+		return 1
+	}
+
 	schedulerParams := scheduler.Params{
-		Jobs:         &jobs,
-		Agent:        agt,
-		Storage:      storage,
-		QueueManager: sqs,
-		Persister:    persister,
+		Jobs:          &jobs,
+		Agent:         agt,
+		Storage:       storage,
+		QueueManager:  sqs,
+		Persister:     persister,
+		MetricsClient: metricsClient,
 		Config: scheduler.Config{
 			MonitorInterval:   cfg.Scheduler.MonitorInterval,
 			HeartbeatInterval: cfg.Scheduler.HeartbeatInterval,

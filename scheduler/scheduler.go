@@ -8,23 +8,25 @@ import (
 
 	"github.com/sirupsen/logrus"
 
-	"github.com/adevinta/vulcan-agent"
+	agent "github.com/adevinta/vulcan-agent"
 	"github.com/adevinta/vulcan-agent/check"
 	"github.com/adevinta/vulcan-agent/persistence"
 	"github.com/adevinta/vulcan-agent/queue"
+	metrics "github.com/adevinta/vulcan-metrics-client"
 )
 
 // Scheduler represents a scheduler
 type Scheduler struct {
-	ctx          context.Context
-	cancel       context.CancelFunc
-	jobs         *Jobs
-	agent        agent.Agent
-	storage      check.Storage
-	persister    persistence.PersisterService
-	queueManager queue.Manager
-	config       Config
-	log          *logrus.Entry
+	ctx           context.Context
+	cancel        context.CancelFunc
+	jobs          *Jobs
+	agent         agent.Agent
+	storage       check.Storage
+	persister     persistence.PersisterService
+	queueManager  queue.Manager
+	metricsClient metrics.Client
+	config        Config
+	log           *logrus.Entry
 
 	stats Stats
 	mutex sync.RWMutex
@@ -37,12 +39,13 @@ type RemoteCheckStateUpdater interface {
 
 // Params represent a set of Scheduler parameters
 type Params struct {
-	Jobs         *Jobs
-	Agent        agent.Agent
-	Storage      check.Storage
-	QueueManager queue.Manager
-	Persister    persistence.PersisterService
-	Config       Config
+	Jobs          *Jobs
+	Agent         agent.Agent
+	Storage       check.Storage
+	QueueManager  queue.Manager
+	Persister     persistence.PersisterService
+	MetricsClient metrics.Client
+	Config        Config
 }
 
 // Config represents
@@ -65,16 +68,17 @@ func New(ctx context.Context, cancel context.CancelFunc, params Params, log *log
 	}
 
 	return &Scheduler{
-		ctx:          ctx,
-		cancel:       cancel,
-		jobs:         params.Jobs,
-		agent:        params.Agent,
-		storage:      params.Storage,
-		persister:    params.Persister,
-		queueManager: params.QueueManager,
-		config:       params.Config,
-		log:          log,
-		stats:        stats,
+		ctx:           ctx,
+		cancel:        cancel,
+		jobs:          params.Jobs,
+		agent:         params.Agent,
+		storage:       params.Storage,
+		persister:     params.Persister,
+		queueManager:  params.QueueManager,
+		metricsClient: params.MetricsClient,
+		config:        params.Config,
+		log:           log,
+		stats:         stats,
 	}
 }
 

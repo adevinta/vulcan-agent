@@ -2,11 +2,13 @@ package scheduler
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 
-	"github.com/sirupsen/logrus"
 	"github.com/adevinta/vulcan-agent/check"
 	"github.com/adevinta/vulcan-agent/queue"
+	metrics "github.com/adevinta/vulcan-metrics-client"
+	"github.com/sirupsen/logrus"
 )
 
 func (s *Scheduler) processMessage(m queue.Message) {
@@ -101,6 +103,14 @@ func (s *Scheduler) processMessage(m queue.Message) {
 
 	// NOTE: We don't update the status of the check here wait for the SDK to report back to update
 	go s.monitor(job)
+	// Increment running checks metric for agent.
+	s.metricsClient.Push(metrics.Metric{
+		Name:  "vulcan.scan.check.running",
+		Typ:   metrics.Gauge,
+		Value: 1,
+		Tags:  []string{"component:agent", fmt.Sprint("agentid:", s.agent.ID())},
+	})
+
 	l.Debug("message processed successfully")
 }
 
