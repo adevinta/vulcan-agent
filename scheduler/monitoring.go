@@ -36,8 +36,8 @@ func (s *Scheduler) monitor(job check.Job) {
 		// Decrement running checks metric for agent.
 		s.metricsClient.Push(metrics.Metric{
 			Name:  "vulcan.scan.check.running",
-			Typ:   metrics.Count,
-			Value: -1,
+			Typ:   metrics.Gauge,
+			Value: 1,
 			Tags:  []string{"component:agent", fmt.Sprint("agentid:", s.agent.ID())},
 		})
 	}()
