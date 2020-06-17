@@ -7,7 +7,7 @@ require (
 	github.com/DataDog/datadog-go v3.7.1+incompatible
 	github.com/Microsoft/go-winio v0.4.14 // indirect
 	github.com/adevinta/dockerutils v0.0.0-20190826104125-915f26bde8e5
-	github.com/adevinta/vulcan-metrics-client v0.0.0-20200609083658-04671f202d73
+	github.com/adevinta/vulcan-metrics-client v0.0.0-20200617105830-6078a0e12ebd
 	github.com/adevinta/vulcan-report v0.0.0-20190503133936-d8a2d4cb18ff
 	github.com/aws/aws-sdk-go v1.30.11
 	github.com/cenkalti/backoff v2.2.1+incompatible // indirect

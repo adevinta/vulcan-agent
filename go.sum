@@ -8,6 +8,8 @@ github.com/adevinta/dockerutils v0.0.0-20190826104125-915f26bde8e5 h1:dAEZKbV4ab
 github.com/adevinta/dockerutils v0.0.0-20190826104125-915f26bde8e5/go.mod h1:Tf9DLLpE2bthMKu7ndZYc0jWnxyCY+KPvJGqn9RnqMU=
 github.com/adevinta/vulcan-metrics-client v0.0.0-20200609083658-04671f202d73 h1:6aIUTdht7dDv0Tm2aPBDXNSSaPFtWZCXlTmMTFAbR/0=
 github.com/adevinta/vulcan-metrics-client v0.0.0-20200609083658-04671f202d73/go.mod h1:M+oEghaodOSKYMScXw7Vpz9DypFo6PbgIEJrAexyWBo=
+github.com/adevinta/vulcan-metrics-client v0.0.0-20200617105830-6078a0e12ebd h1:gI+Ni3OjDLbA/ysKq+bdhwQHkTDCsDVWGM1I13gxaME=
+github.com/adevinta/vulcan-metrics-client v0.0.0-20200617105830-6078a0e12ebd/go.mod h1:M+oEghaodOSKYMScXw7Vpz9DypFo6PbgIEJrAexyWBo=
 github.com/adevinta/vulcan-report v0.0.0-20190503133936-d8a2d4cb18ff h1:ZazuZSOfV8oo70SWdjLQi+In4GSmJCA2rwsliyz9KNs=
 github.com/adevinta/vulcan-report v0.0.0-20190503133936-d8a2d4cb18ff/go.mod h1:GtAon6TymHFTOPwRdR7SHun/TSM1kyPMQYXxGLTR8eQ=
 github.com/aws/aws-sdk-go v1.30.11 h1:bJoa1QGyyAV4COx1SXpf+LElFVVnOreG6KM0jIxwZq0=
