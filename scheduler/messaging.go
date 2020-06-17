@@ -106,7 +106,7 @@ func (s *Scheduler) processMessage(m queue.Message) {
 	// Increment running checks metric for agent.
 	s.metricsClient.Push(metrics.Metric{
 		Name:  "vulcan.scan.check.running",
-		Typ:   metrics.Gauge,
+		Typ:   metrics.Count,
 		Value: 1,
 		Tags:  []string{"component:agent", fmt.Sprint("agentid:", s.agent.ID())},
 	})
