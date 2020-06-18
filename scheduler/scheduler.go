@@ -15,6 +15,10 @@ import (
 	metrics "github.com/adevinta/vulcan-metrics-client"
 )
 
+const (
+	dogStatsDGracePeriod = 10
+)
+
 // Scheduler represents a scheduler
 type Scheduler struct {
 	ctx           context.Context
@@ -161,6 +165,8 @@ func (s *Scheduler) Run() {
 
 	// Wait for all jobs to finish.
 	s.jobs.Wait()
+	// Extra grace period for DogStatsD to send metrics.
+	time.Sleep(dogStatsDGracePeriod * time.Second)
 
 	s.log.Warn("agent scheduler finished")
 }
