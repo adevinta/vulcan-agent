@@ -144,6 +144,7 @@ func (s *Scheduler) Run() {
 				}
 				err = errVal
 			case <-metricsTicker.C:
+				s.log.Info("METRICS TICKER")
 				s.pushCheckMetrics()
 			}
 		}
@@ -182,8 +183,10 @@ func (s *Scheduler) Run() {
 func (s *Scheduler) pushCheckMetrics() {
 	runningChecks, err := s.storage.GetAllByStatus(check.StatusRunning)
 	if err != nil {
+		s.log.Info("RUNNING CHECKS ERR: ", err)
 		return
 	}
+	s.log.Info("RUNNING CHECKS: ", runningChecks)
 
 	s.metricsClient.Push(metrics.Metric{
 		Name:  "vulcan.scan.check.running",

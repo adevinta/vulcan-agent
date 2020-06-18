@@ -158,6 +158,7 @@ func MainWithExitCode(factory agent.AgentFactory) int {
 		l.WithError(err).Error("error creating metrics client")
 		return 1
 	}
+	l.Info("METRICS DD")
 
 	schedulerParams := scheduler.Params{
 		Jobs:          &jobs,
