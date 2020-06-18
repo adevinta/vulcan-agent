@@ -186,7 +186,7 @@ func (s *Scheduler) pushCheckMetrics() {
 		s.log.Info("RUNNING CHECKS ERR: ", err)
 		return
 	}
-	s.log.Info("RUNNING CHECKS: ", runningChecks)
+	s.log.Info("RUNNING CHECKS: ", float64(len(runningChecks)))
 
 	s.metricsClient.Push(metrics.Metric{
 		Name:  "vulcan.scan.check.running",
