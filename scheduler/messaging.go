@@ -136,7 +136,7 @@ func (s *Scheduler) decrCheckMetrics() {
 func (s *Scheduler) pushCheckMetrics(variation float64) {
 	s.metricsClient.Push(metrics.Metric{
 		Name:  "vulcan.scan.check.running",
-		Typ:   metrics.Gauge,
+		Typ:   metrics.Count,
 		Value: variation,
 		Tags:  []string{"component:agent", fmt.Sprint("agentid:", s.agent.ID())},
 	})
