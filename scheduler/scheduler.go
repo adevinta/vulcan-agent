@@ -3,6 +3,7 @@ package scheduler
 import (
 	"context"
 	"errors"
+	"fmt"
 	"sync"
 	"time"
 
@@ -16,7 +17,8 @@ import (
 )
 
 const (
-	dogStatsDGracePeriod = 30
+	dogStatsDReportPeriod = 10
+	dogStatsDGracePeriod  = 10
 )
 
 // Scheduler represents a scheduler
@@ -110,6 +112,9 @@ func (s *Scheduler) Run() {
 			err = errors.New("error updating agent status")
 		}
 
+		metricsTicker := time.NewTicker(dogStatsDReportPeriod * time.Second)
+		defer metricsTicker.Stop()
+
 		for err == nil {
 			select {
 			// If agent has been disconnected.
@@ -138,6 +143,8 @@ func (s *Scheduler) Run() {
 					break
 				}
 				err = errVal
+			case <-metricsTicker.C:
+				s.pushCheckMetrics()
 			}
 		}
 	}
@@ -164,8 +171,24 @@ func (s *Scheduler) Run() {
 	s.cancel()
 	// Wait for all jobs to finish.
 	s.jobs.Wait()
-	// Extra grace period for DogStatsD to send metrics.
+	// Send last check metrics and wait grace period
+	// so statsd agent can send last metrics to DD.
+	s.pushCheckMetrics()
 	time.Sleep(dogStatsDGracePeriod * time.Second)
 
 	s.log.Warn("agent scheduler finished")
+}
+
+func (s *Scheduler) pushCheckMetrics() {
+	runningChecks, err := s.storage.GetAllByStatus(check.StatusRunning)
+	if err != nil {
+		return
+	}
+
+	s.metricsClient.Push(metrics.Metric{
+		Name:  "vulcan.scan.check.running",
+		Typ:   metrics.Histogram,
+		Value: float64(len(runningChecks)),
+		Tags:  []string{"component:agent", fmt.Sprint("agentid:", s.agent.ID())},
+	})
 }
