@@ -162,7 +162,6 @@ func (s *Scheduler) Run() {
 
 	// Disconnect agent.
 	s.cancel()
-
 	// Wait for all jobs to finish.
 	s.jobs.Wait()
 	// Extra grace period for DogStatsD to send metrics.
