@@ -136,13 +136,13 @@ func (s *Scheduler) decrCheckMetrics() {
 func (s *Scheduler) pushCheckMetrics(variation float64) {
 	s.metricsClient.Push(metrics.Metric{
 		Name:  "vulcan.scan.check.running",
-		Typ:   metrics.Count,
+		Typ:   metrics.Gauge,
 		Value: variation,
 		Tags:  []string{"component:agent", fmt.Sprint("agentid:", s.agent.ID())},
 	})
 }
 
-// musabortCheck returns true if an error is an httpError and
+// mustAbortCheck returns true if an error is an httpError and
 // the http status is PreconditionFailed.
 func mustAbortCheck(err error) bool {
 	if err == nil {
