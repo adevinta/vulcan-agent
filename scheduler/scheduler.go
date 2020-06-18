@@ -16,7 +16,7 @@ import (
 )
 
 const (
-	dogStatsDGracePeriod = 10
+	dogStatsDGracePeriod = 30
 )
 
 // Scheduler represents a scheduler
