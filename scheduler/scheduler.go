@@ -17,7 +17,7 @@ import (
 )
 
 const (
-	dogStatsDReportPeriod = 10
+	dogStatsDReportPeriod = 5
 	dogStatsDGracePeriod  = 10
 )
 
@@ -190,7 +190,7 @@ func (s *Scheduler) pushCheckMetrics() {
 
 	s.metricsClient.Push(metrics.Metric{
 		Name:  "vulcan.scan.check.running",
-		Typ:   metrics.Distribution,
+		Typ:   metrics.Histogram,
 		Value: float64(len(runningChecks)),
 		Tags:  []string{"component:agent", fmt.Sprint("agentid:", s.agent.ID())},
 	})
