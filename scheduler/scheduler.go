@@ -190,7 +190,7 @@ func (s *Scheduler) pushCheckMetrics() {
 
 	s.metricsClient.Push(metrics.Metric{
 		Name:  "vulcan.scan.check.running",
-		Typ:   metrics.Gauge,
+		Typ:   metrics.Distribution,
 		Value: float64(len(runningChecks)),
 		Tags:  []string{"component:agent", fmt.Sprint("agentid:", s.agent.ID())},
 	})
