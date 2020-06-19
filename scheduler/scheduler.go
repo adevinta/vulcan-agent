@@ -18,7 +18,6 @@ import (
 
 const (
 	dogStatsDReportPeriod = 5
-	dogStatsDGracePeriod  = 10
 )
 
 // Scheduler represents a scheduler
@@ -171,10 +170,8 @@ func (s *Scheduler) Run() {
 	s.cancel()
 	// Wait for all jobs to finish.
 	s.jobs.Wait()
-	// Send last check metrics and wait grace period
-	// so statsd agent can send them to DD.
+	// Send last check metrics.
 	s.pushCheckMetrics()
-	time.Sleep(dogStatsDGracePeriod * time.Second)
 
 	s.log.Warn("agent scheduler finished")
 }
