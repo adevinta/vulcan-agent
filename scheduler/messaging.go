@@ -2,12 +2,10 @@ package scheduler
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 
 	"github.com/adevinta/vulcan-agent/check"
 	"github.com/adevinta/vulcan-agent/queue"
-	metrics "github.com/adevinta/vulcan-metrics-client"
 	"github.com/sirupsen/logrus"
 )
 
@@ -19,7 +17,6 @@ func (s *Scheduler) processMessage(m queue.Message) {
 		s.log.WithError(err).Error("error scheduling job")
 		return
 	}
-	s.incrCheckMetrics()
 
 	var params check.JobParams
 	err = params.UnmarshalJSON([]byte(m.Body()))
@@ -28,7 +25,6 @@ func (s *Scheduler) processMessage(m queue.Message) {
 		s.deleteMessage(m)
 		s.log.WithError(err).Error("error unmarshalling message body")
 		s.jobs.Done()
-		s.decrCheckMetrics()
 		return
 	}
 
@@ -42,7 +38,6 @@ func (s *Scheduler) processMessage(m queue.Message) {
 	if err != nil {
 		l.WithError(err).Error("error updating check agent in persistence the check will not run")
 		s.jobs.Done()
-		s.decrCheckMetrics()
 		return
 	}
 
@@ -50,7 +45,6 @@ func (s *Scheduler) processMessage(m queue.Message) {
 	if err != nil {
 		l.WithError(err).Error("error creating check job")
 		s.jobs.Done()
-		s.decrCheckMetrics()
 		return
 	}
 	l.Debug("trying to assign check")
@@ -58,7 +52,6 @@ func (s *Scheduler) processMessage(m queue.Message) {
 	if err != nil && !mustAbortCheck(err) {
 		l.WithError(err).Error("error updating check status in storage")
 		s.jobs.Done()
-		s.decrCheckMetrics()
 		return
 	}
 
@@ -70,7 +63,6 @@ func (s *Scheduler) processMessage(m queue.Message) {
 			l.WithError(err).Error("error trying to set check state to aborted after a precondition failed response received")
 		}
 		s.jobs.Done()
-		s.decrCheckMetrics()
 		return
 	}
 
@@ -93,7 +85,6 @@ func (s *Scheduler) processMessage(m queue.Message) {
 			l.WithError(err).Error("error updating agent status, check leaked")
 		}
 		s.jobs.Done()
-		s.decrCheckMetrics()
 		return
 	}
 
@@ -105,7 +96,6 @@ func (s *Scheduler) processMessage(m queue.Message) {
 			l.WithError(err).Error("error updating agent status, check leaked")
 		}
 		s.jobs.Done()
-		s.decrCheckMetrics()
 		return
 	}
 
@@ -123,23 +113,6 @@ func (s *Scheduler) deleteMessage(m queue.Message) {
 		s.log.WithError(err).Error("error deleting message")
 		return
 	}
-}
-
-func (s *Scheduler) incrCheckMetrics() {
-	s.pushCheckMetrics(1)
-}
-
-func (s *Scheduler) decrCheckMetrics() {
-	s.pushCheckMetrics(-1)
-}
-
-func (s *Scheduler) pushCheckMetrics(variation float64) {
-	s.metricsClient.Push(metrics.Metric{
-		Name:  "vulcan.scan.check.running",
-		Typ:   metrics.Gauge,
-		Value: variation,
-		Tags:  []string{"component:agent", fmt.Sprint("agentid:", s.agent.ID())},
-	})
 }
 
 // mustAbortCheck returns true if an error is an httpError and

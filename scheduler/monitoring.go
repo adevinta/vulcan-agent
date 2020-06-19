@@ -29,10 +29,7 @@ func (s *Scheduler) heartbeat() {
 
 func (s *Scheduler) monitor(job check.Job) {
 	// Unschedule job when finished.
-	defer func() {
-		s.jobs.Done()
-		s.decrCheckMetrics()
-	}()
+	defer s.jobs.Done()
 
 	l := s.log.WithFields(logrus.Fields{"check_id": job.CheckID})
 
