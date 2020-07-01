@@ -232,7 +232,7 @@ func MainWithExitCode(factory agent.AgentFactory) int {
 	}
 	sInterval := time.Duration(cfg.Stream.RetryInterval) * time.Second
 	strm, err := stream.New(
-		agentCtx, agentCancel, agt, storage,
+		agentCtx, agentCancel, agt, storage, metricsClient,
 		cfg.Stream.Endpoint, streamTimeout, l,
 		cfg.Stream.Retries,
 		sInterval,

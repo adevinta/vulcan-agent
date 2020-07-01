@@ -3,6 +3,7 @@ package stream
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 	"strings"
 	"sync"
@@ -13,6 +14,7 @@ import (
 
 	agent "github.com/adevinta/vulcan-agent"
 	"github.com/adevinta/vulcan-agent/check"
+	metrics "github.com/adevinta/vulcan-metrics-client"
 )
 
 // Internal mutex
@@ -31,17 +33,18 @@ const BufLen = 10
 
 // Stream represents a stream
 type Stream struct {
-	ctx          context.Context
-	cancel       context.CancelFunc
-	agent        agent.Agent
-	storage      check.Storage
-	status       string
-	endpoint     string
-	stream       *websocket.Conn
-	streamDialer *WSDialerWithRetries
-	timeout      time.Duration
-	events       chan Message
-	log          *logrus.Entry
+	ctx           context.Context
+	cancel        context.CancelFunc
+	agent         agent.Agent
+	storage       check.Storage
+	metricsClient metrics.Client
+	status        string
+	endpoint      string
+	stream        *websocket.Conn
+	streamDialer  *WSDialerWithRetries
+	timeout       time.Duration
+	events        chan Message
+	log           *logrus.Entry
 }
 
 // Message represents a Stream message
@@ -53,7 +56,7 @@ type Message struct {
 
 // New initializes and connects a new Stream
 func New(ctx context.Context, cancel context.CancelFunc,
-	agent agent.Agent, storage check.Storage, endpoint string,
+	agent agent.Agent, storage check.Storage, metricsClient metrics.Client, endpoint string,
 	timeout time.Duration, log *logrus.Entry, retries int, retryInterval time.Duration) (Stream, error) {
 
 	dialer := NewWSDialerWithRetries(websocket.DefaultDialer, log.WithField("stream", "dialer"), retries, retryInterval)
@@ -63,17 +66,18 @@ func New(ctx context.Context, cancel context.CancelFunc,
 	}
 	events := make(chan Message, BufLen)
 	s := Stream{
-		ctx:          ctx,
-		cancel:       cancel,
-		agent:        agent,
-		storage:      storage,
-		status:       StatusConnecting,
-		endpoint:     endpoint,
-		stream:       conn,
-		streamDialer: dialer,
-		events:       events,
-		timeout:      timeout,
-		log:          log,
+		ctx:           ctx,
+		cancel:        cancel,
+		agent:         agent,
+		storage:       storage,
+		metricsClient: metricsClient,
+		status:        StatusConnecting,
+		endpoint:      endpoint,
+		stream:        conn,
+		streamDialer:  dialer,
+		events:        events,
+		timeout:       timeout,
+		log:           log,
 	}
 
 	return s, nil
@@ -220,6 +224,7 @@ func (s *Stream) HandleMessages(actions map[string]func(agent.Agent, string)) er
 				s.log.WithFields(logrus.Fields{
 					"message": msg,
 				}).Debug("stream message received")
+				s.incrReceivedMssgs(msg)
 				s.processMessage(actions, msg)
 			case <-s.ctx.Done():
 				s.log.Debug("agent context in is done in stream")
@@ -257,4 +262,18 @@ func (s *Stream) setStatus(status string) {
 	mu.Lock()
 	defer mu.Unlock()
 	s.status = status
+}
+
+// incrReceivedMssgs increments the metric for
+// received messages from stream broadcasting.
+func (s *Stream) incrReceivedMssgs(msg Message) {
+	s.metricsClient.Push(metrics.Metric{
+		Name:  "vulcan.stream.mssgs.received",
+		Typ:   metrics.Count,
+		Value: 1,
+		Tags: []string{
+			"component:agent",
+			fmt.Sprint("action:", msg.Action),
+		},
+	})
 }
