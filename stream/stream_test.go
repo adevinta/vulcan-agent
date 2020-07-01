@@ -142,11 +142,14 @@ func (ta *TestAgent) Raw(checkID string) ([]byte, error) {
 
 type mockMetricsClient struct {
 	metrics.Client
+	mx      sync.Mutex
 	metrics []metrics.Metric
 }
 
 func (mc *mockMetricsClient) Push(m metrics.Metric) {
+	mc.mx.Lock()
 	mc.metrics = append(mc.metrics, m)
+	mc.mx.Unlock()
 }
 
 func TestStreamActions(t *testing.T) {
@@ -280,7 +283,10 @@ func TestStreamActions(t *testing.T) {
 
 			// Verify that broadcasted mssg was passed
 			// to metrics client and metrics pushed.
+			// (we have to use a mutex because otherwise
+			// we gate a race condition due to ping actions)
 			found := false
+			mc.mx.Lock()
 			for _, m := range mc.metrics {
 				for _, tag := range m.Tags {
 					if tag == fmt.Sprint("action:", tc.message.Action) {
@@ -288,6 +294,7 @@ func TestStreamActions(t *testing.T) {
 					}
 				}
 			}
+			mc.mx.Unlock()
 			if !found {
 				t.Fatalf("test %v failed: no metris pushed for broadcasted mssg", tc.name)
 			}
