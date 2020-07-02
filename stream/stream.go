@@ -224,7 +224,7 @@ func (s *Stream) HandleMessages(actions map[string]func(agent.Agent, string)) er
 				s.log.WithFields(logrus.Fields{
 					"message": msg,
 				}).Debug("stream message received")
-				s.incrReceivedMssgs(msg)
+				s.incrReceivedMssgs(msg, s.agent.ID())
 				s.processMessage(actions, msg)
 			case <-s.ctx.Done():
 				s.log.Debug("agent context in is done in stream")
@@ -266,7 +266,7 @@ func (s *Stream) setStatus(status string) {
 
 // incrReceivedMssgs increments the metric for
 // received messages from stream broadcasting.
-func (s *Stream) incrReceivedMssgs(msg Message) {
+func (s *Stream) incrReceivedMssgs(msg Message, agentID string) {
 	s.metricsClient.Push(metrics.Metric{
 		Name:  "vulcan.stream.mssgs.received",
 		Typ:   metrics.Count,
@@ -274,7 +274,7 @@ func (s *Stream) incrReceivedMssgs(msg Message) {
 		Tags: []string{
 			"component:agent",
 			fmt.Sprint("action:", msg.Action),
-			fmt.Sprint("agentid:", msg.AgentID),
+			fmt.Sprint("agentid:", agentID),
 		},
 	})
 }
