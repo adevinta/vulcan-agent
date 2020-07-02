@@ -274,6 +274,7 @@ func (s *Stream) incrReceivedMssgs(msg Message) {
 		Tags: []string{
 			"component:agent",
 			fmt.Sprint("action:", msg.Action),
+			fmt.Sprint("agentid:", msg.AgentID),
 		},
 	})
 }
