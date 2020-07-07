@@ -4,7 +4,7 @@ go 1.13
 
 require (
 	github.com/BurntSushi/toml v0.3.1
-	github.com/DataDog/datadog-go v3.7.1+incompatible
+	github.com/DataDog/datadog-go v3.7.2+incompatible
 	github.com/Microsoft/go-winio v0.4.14 // indirect
 	github.com/adevinta/dockerutils v0.0.0-20190826104125-915f26bde8e5
 	github.com/adevinta/vulcan-metrics-client v0.0.0-20200617105830-6078a0e12ebd
