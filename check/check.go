@@ -37,6 +37,7 @@ type JobParams struct {
 	Timeout       int       `json:"timeout"`       // Required
 	Options       string    `json:"options"`       // Optional
 	RequiredVars  []string  `json:"required_vars"` // Optional
+	ProgramTeam   string    `json:"program_team"`  // Optional
 }
 
 //UnmarshalJSON handles the special format for scanStartTime

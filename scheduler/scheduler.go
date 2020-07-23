@@ -177,15 +177,30 @@ func (s *Scheduler) Run() {
 }
 
 func (s *Scheduler) pushCheckMetrics() {
+	componentTag := "component:agent"
+	agentIDTag := fmt.Sprint("agentid:", s.agent.ID())
 	runningChecks, err := s.storage.GetAllByStatus(check.StatusRunning)
 	if err != nil {
 		return
+	}
+
+	for _, c := range runningChecks {
+		componentTag := "component:agent"
+		scanTag := fmt.Sprint("scan:", c.JobParams.ProgramTeam)
+		checkStatusTag := "checkstatus:agent-running"
+
+		s.metricsClient.Push(metrics.Metric{
+			Name:  "vulcan.scan.check.count",
+			Typ:   metrics.Count,
+			Value: 1,
+			Tags:  []string{componentTag, scanTag, checkStatusTag, agentIDTag},
+		})
 	}
 
 	s.metricsClient.Push(metrics.Metric{
 		Name:  "vulcan.scan.check.running",
 		Typ:   metrics.Gauge,
 		Value: float64(len(runningChecks)),
-		Tags:  []string{"component:agent", fmt.Sprint("agentid:", s.agent.ID())},
+		Tags:  []string{componentTag, agentIDTag},
 	})
 }
