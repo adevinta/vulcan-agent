@@ -2,10 +2,12 @@ package scheduler
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 
 	"github.com/adevinta/vulcan-agent/check"
 	"github.com/adevinta/vulcan-agent/queue"
+	metrics "github.com/adevinta/vulcan-metrics-client"
 	"github.com/sirupsen/logrus"
 )
 
@@ -54,6 +56,7 @@ func (s *Scheduler) processMessage(m queue.Message) {
 		s.jobs.Done()
 		return
 	}
+	s.pushStatusChangeCheckMetrics(job.ProgramTeam, "agent-assigned")
 
 	s.deleteMessage(m)
 
@@ -63,6 +66,7 @@ func (s *Scheduler) processMessage(m queue.Message) {
 			l.WithError(err).Error("error trying to set check state to aborted after a precondition failed response received")
 		}
 		s.jobs.Done()
+		s.pushStatusChangeCheckMetrics(job.ProgramTeam, "agent-aborted")
 		return
 	}
 
@@ -85,6 +89,7 @@ func (s *Scheduler) processMessage(m queue.Message) {
 			l.WithError(err).Error("error updating agent status, check leaked")
 		}
 		s.jobs.Done()
+		s.pushStatusChangeCheckMetrics(job.ProgramTeam, "agent-failed")
 		return
 	}
 
@@ -96,13 +101,28 @@ func (s *Scheduler) processMessage(m queue.Message) {
 			l.WithError(err).Error("error updating agent status, check leaked")
 		}
 		s.jobs.Done()
+		s.pushStatusChangeCheckMetrics(job.ProgramTeam, "agent-failed")
 		return
 	}
 
 	// NOTE: We don't update the status of the check here wait for the SDK to report back to update
+	s.pushStatusChangeCheckMetrics(job.ProgramTeam, "agent-running")
 	go s.monitor(job)
 
 	l.Debug("message processed successfully")
+}
+
+func (s *Scheduler) pushStatusChangeCheckMetrics(jobTenant string, jobStatus string) {
+	agentIDTag := fmt.Sprint("agentid:", s.agent.ID())
+	scanTag := fmt.Sprint("scan:", jobTenant)
+	checkStatusTag := fmt.Sprint("checkstatus:", jobStatus)
+
+	s.metricsClient.Push(metrics.Metric{
+		Name:  "vulcan.scan.check.count",
+		Typ:   metrics.Count,
+		Value: 1,
+		Tags:  []string{componentTag, scanTag, checkStatusTag, agentIDTag},
+	})
 }
 
 func (s *Scheduler) deleteMessage(m queue.Message) {
