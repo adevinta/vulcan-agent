@@ -56,7 +56,7 @@ func (s *Scheduler) processMessage(m queue.Message) {
 		s.jobs.Done()
 		return
 	}
-	s.pushStatusChangeCheckMetrics(job.ProgramTeam, "agent-assigned")
+	s.pushStatusChangeCheckMetrics(job.Metadata, "agent-assigned")
 
 	s.deleteMessage(m)
 
@@ -66,7 +66,7 @@ func (s *Scheduler) processMessage(m queue.Message) {
 			l.WithError(err).Error("error trying to set check state to aborted after a precondition failed response received")
 		}
 		s.jobs.Done()
-		s.pushStatusChangeCheckMetrics(job.ProgramTeam, "agent-aborted")
+		s.pushStatusChangeCheckMetrics(job.Metadata, "agent-aborted")
 		return
 	}
 
@@ -89,7 +89,7 @@ func (s *Scheduler) processMessage(m queue.Message) {
 			l.WithError(err).Error("error updating agent status, check leaked")
 		}
 		s.jobs.Done()
-		s.pushStatusChangeCheckMetrics(job.ProgramTeam, "agent-failed")
+		s.pushStatusChangeCheckMetrics(job.Metadata, "agent-failed")
 		return
 	}
 
@@ -101,20 +101,28 @@ func (s *Scheduler) processMessage(m queue.Message) {
 			l.WithError(err).Error("error updating agent status, check leaked")
 		}
 		s.jobs.Done()
-		s.pushStatusChangeCheckMetrics(job.ProgramTeam, "agent-failed")
+		s.pushStatusChangeCheckMetrics(job.Metadata, "agent-failed")
 		return
 	}
 
 	// NOTE: We don't update the status of the check here wait for the SDK to report back to update
-	s.pushStatusChangeCheckMetrics(job.ProgramTeam, "agent-running")
+	s.pushStatusChangeCheckMetrics(job.Metadata, "agent-running")
 	go s.monitor(job)
 
 	l.Debug("message processed successfully")
 }
 
-func (s *Scheduler) pushStatusChangeCheckMetrics(jobTenant string, jobStatus string) {
+func (s *Scheduler) pushStatusChangeCheckMetrics(metadata map[string]string, jobStatus string) {
 	agentIDTag := fmt.Sprint("agentid:", s.agent.ID())
-	scanTag := fmt.Sprint("scan:", jobTenant)
+	program := "unknown-program"
+	team := "unknown-team"
+	if val, ok := metadata["program"]; ok {
+		program = val
+	}
+	if val, ok := metadata["team"]; ok {
+		team = val
+	}
+	scanTag := fmt.Sprint("scan:", fmt.Sprintf("%s-%s", program, team))
 	checkStatusTag := fmt.Sprint("checkstatus:", jobStatus)
 
 	s.metricsClient.Push(metrics.Metric{

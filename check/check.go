@@ -29,15 +29,15 @@ var terminalStatuses = []string{StatusAborted, StatusKilled, StatusFailed, Statu
 
 // JobParams stores the information necessary to create a new check job.
 type JobParams struct {
-	CheckID       string    `json:"check_id"`      // Required
-	ScanID        string    `json:"scan_id"`       // Required
-	ScanStartTime time.Time `json:"start_time"`    // Required
-	Image         string    `json:"image"`         // Required
-	Target        string    `json:"target"`        // Required
-	Timeout       int       `json:"timeout"`       // Required
-	Options       string    `json:"options"`       // Optional
-	RequiredVars  []string  `json:"required_vars"` // Optional
-	ProgramTeam   string    `json:"program_team"`  // Optional
+	CheckID       string            `json:"check_id"`      // Required
+	ScanID        string            `json:"scan_id"`       // Required
+	ScanStartTime time.Time         `json:"start_time"`    // Required
+	Image         string            `json:"image"`         // Required
+	Target        string            `json:"target"`        // Required
+	Timeout       int               `json:"timeout"`       // Required
+	Options       string            `json:"options"`       // Optional
+	RequiredVars  []string          `json:"required_vars"` // Optional
+	Metadata      map[string]string `json:"metadata"`      // Optional
 }
 
 //UnmarshalJSON handles the special format for scanStartTime
