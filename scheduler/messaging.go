@@ -122,7 +122,7 @@ func (s *Scheduler) pushStatusChangeCheckMetrics(metadata map[string]string, job
 	if val, ok := metadata["team"]; ok {
 		team = val
 	}
-	scanTag := fmt.Sprint("scan:", fmt.Sprintf("%s-%s", program, team))
+	scanTag := fmt.Sprint("scan:", fmt.Sprintf("%s-%s", team, program))
 	checkStatusTag := fmt.Sprint("checkstatus:", jobStatus)
 
 	s.metricsClient.Push(metrics.Metric{
