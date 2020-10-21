@@ -12,13 +12,13 @@ import (
 
 	"github.com/BurntSushi/toml"
 	"github.com/DataDog/datadog-go/statsd"
+	"github.com/adevinta/vulcan-agent/api"
+	"github.com/adevinta/vulcan-agent/persistence"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/ec2metadata"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/autoscaling"
 	"github.com/aws/aws-sdk-go/service/autoscaling/autoscalingiface"
-	"github.com/adevinta/vulcan-agent/api"
-	"github.com/adevinta/vulcan-agent/persistence"
 )
 
 const (
@@ -99,7 +99,6 @@ func mainWithExitCode() int {
 	cancelDefer := false
 	var b bytes.Buffer
 	p := &b
-	fmt.Fprintf(p, "ID: %v", id)
 	defer func() {
 		if !cancelDefer {
 			fmt.Println(b.String())
@@ -125,11 +124,12 @@ func mainWithExitCode() int {
 		return 0
 	}
 
-	fmt.Fprintf(p, " AgentID: %v LastMessageReceived: %v Current: %v", a.stats.AgentID, a.stats.LastMessageReceived, time.Now())
+	fmt.Fprintf(p, "%v - ID: %v AgentID: %v LastMessageReceived: %v",
+		time.Now(), id, a.stats.AgentID, a.stats.LastMessageReceived)
 
 	// Terminate agent if there are no messages in the queue for some time.
 	// Before terminating it, we need to ensure that the agent is paused and
-	// that there are not running jobs. If do not, wait until the next execution.
+	// that there are not running jobs. Else, wait until the next execution.
 	if a.exceededLastMessageReceived() {
 		fmt.Fprintf(p, " EXCEEDS")
 
