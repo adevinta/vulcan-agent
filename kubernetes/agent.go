@@ -213,6 +213,7 @@ func (a *Agent) getEnvVars(job check.Job) []string {
 			"--env", fmt.Sprintf("%s=%s", agent.ChecktypeNameVar, checktypeName),
 			"--env", fmt.Sprintf("%s=%s", agent.ChecktypeVersionVar, checktypeVersion),
 			"--env", fmt.Sprintf("%s=%s", agent.CheckTargetVar, job.Target),
+			"--env", fmt.Sprintf("%s=%s", agent.CheckTargetTypeVar, job.TargetType),
 			"--env", fmt.Sprintf("%s=%s", agent.CheckOptionsVar, job.Options),
 			"--env", fmt.Sprintf("%s=%s", agent.CheckLogLevelVar, logLevel),
 			"--env", fmt.Sprintf("%s=%s", agent.AgentAddressVar, a.addr),

@@ -35,6 +35,7 @@ type JobParams struct {
 	ScanStartTime time.Time         `json:"start_time"`    // Required
 	Image         string            `json:"image"`         // Required
 	Target        string            `json:"target"`        // Required
+	TargetType    string            `json:"target_type"`   // Required
 	Timeout       int               `json:"timeout"`       // Required
 	Options       string            `json:"options"`       // Optional
 	RequiredVars  []string          `json:"required_vars"` // Optional

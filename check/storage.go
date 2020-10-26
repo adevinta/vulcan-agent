@@ -202,18 +202,8 @@ func (m *MemoryStorage) NewJob(parent context.Context, params JobParams, log *lo
 	}
 
 	job := Job{
-		JobParams: JobParams{
-			ScanID:        params.ScanID,
-			ScanStartTime: params.ScanStartTime,
-			CheckID:       params.CheckID,
-			Target:        params.Target,
-			Options:       params.Options,
-			RequiredVars:  params.RequiredVars,
-			Image:         params.Image,
-			Timeout:       params.Timeout,
-			Metadata:      params.Metadata,
-		},
-		log: log,
+		JobParams: params,
+		log:       log,
 	}
 
 	job.Ctx, job.Cancel = context.WithCancel(parent)

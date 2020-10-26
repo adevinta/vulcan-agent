@@ -306,6 +306,7 @@ func (a *Agent) getRunConfig(job check.Job) docker.RunConfig {
 				fmt.Sprintf("%s=%s", agent.ChecktypeNameVar, checktypeName),
 				fmt.Sprintf("%s=%s", agent.ChecktypeVersionVar, checktypeVersion),
 				fmt.Sprintf("%s=%s", agent.CheckTargetVar, job.Target),
+				fmt.Sprintf("%s=%s", agent.CheckTargetTypeVar, job.TargetType),
 				fmt.Sprintf("%s=%s", agent.CheckOptionsVar, job.Options),
 				fmt.Sprintf("%s=%s", agent.CheckLogLevelVar, logLevel),
 				fmt.Sprintf("%s=%s", agent.AgentAddressVar, a.addr),
