@@ -15,7 +15,7 @@ const (
 	ChecktypeNameVar    = "VULCAN_CHECKTYPE_NAME"
 	ChecktypeVersionVar = "VULCAN_CHECKTYPE_VERSION"
 	CheckTargetVar      = "VULCAN_CHECK_TARGET"
-	CheckTargetTypeVar  = "VULCAN_CHECK_TARGET_TYPE"
+	CheckAssetTypeVar   = "VULCAN_CHECK_ASSET_TYPE"
 	CheckOptionsVar     = "VULCAN_CHECK_OPTIONS"
 	CheckLogLevelVar    = "VULCAN_CHECK_LOG_LVL"
 
