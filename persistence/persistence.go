@@ -356,8 +356,11 @@ func (p *Persister) jsonRequest(method, route string, v interface{}, log *logrus
 		"body":   reqBody.String(),
 	}).Debug("performing request to persistence")
 
-	c := http.Client{Timeout: p.timeout}
-
+	// Only to test not reusing connections.
+	tr := &http.Transport{
+		DisableKeepAlives: true,
+	}
+	c := &http.Client{Transport: tr, Timeout: p.timeout}
 	res, err := c.Do(req)
 	if err != nil {
 		return nil, err
@@ -459,7 +462,7 @@ func unmarshalRes(resBody []byte) (interface{}, error) {
 		case "jobqueue":
 			obj = &Jobqueue{}
 		default:
-			err = fmt.Errorf("error processing response of type %v", k)
+			err = fmt.Errorf("error processing response of type %v raw message: %s", k, string(resBody))
 		}
 
 		break
