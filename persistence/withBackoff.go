@@ -2,11 +2,13 @@ package persistence
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"time"
 
-	"github.com/sirupsen/logrus"
 	"github.com/lestrrat-go/backoff"
+	"github.com/sirupsen/logrus"
+
 	"github.com/adevinta/vulcan-agent/check"
 )
 
@@ -36,11 +38,11 @@ func WithBackoff(p PersisterCheckStateUpdater, retries int, log *logrus.Entry) P
 	}
 }
 
-func (b withBackoff) withBackoff(exec func() error) error {
-	return b.withBackoffWithShortCircuit(exec, nil)
+func (b withBackoff) withBackoff(op string, exec func() error) error {
+	return b.withBackoffWithShortCircuit(op, exec, nil)
 }
 
-func (b withBackoff) withBackoffWithShortCircuit(exec func() error, shortCircuit BackoffShortCircuit) error {
+func (b withBackoff) withBackoffWithShortCircuit(op string, exec func() error, shortCircuit BackoffShortCircuit) error {
 	var err error
 	retry, cancel := b.policy.Start(context.Background())
 	defer cancel()
@@ -53,22 +55,22 @@ func (b withBackoff) withBackoffWithShortCircuit(exec func() error, shortCircuit
 		// Here we check if the error thar we are getting is a controlled one or not, that is,
 		// if makes sense to continue retrying or not.
 		if shortCircuit != nil && shortCircuit(err) {
-			b.log.WithField("retry_number: ", n).Error("backoff finished because shortCircuit()=true")
+			b.log.WithField("retry_number: ", n).Errorf("backoff finished because shortCircuit()=true, operation info %+v, err %+v", op, err)
 			return err
 		}
 		select {
 		case <-retry.Done():
-			b.log.WithField("retry_number: ", n).Error("backoff finished unable to perform operation")
+			b.log.WithField("retry_number: ", n).Errorf("backoff finished unable to perform operation, info %s, err %+v", op, err)
 			return err
 		case <-retry.Next():
 			n++
-			b.log.WithField("retry_number: ", n).Error("backoff fired. Retrying")
+			b.log.WithField("retry_number: ", n).Errorf("backoff fired. Retrying operation, info %s, err %+v", op, err)
 		}
 	}
 }
 
 func (b withBackoff) CreateAgent(agentVersion, jobqueueID string) (agentID, jobqueueARN string, err error) {
-	err = b.withBackoff(func() error {
+	err = b.withBackoff("CreateAgent", func() error {
 		agentID, jobqueueARN, err = b.PersisterCheckStateUpdater.CreateAgent(agentVersion, jobqueueID)
 		return err
 	})
@@ -76,25 +78,29 @@ func (b withBackoff) CreateAgent(agentVersion, jobqueueID string) (agentID, jobq
 }
 
 func (b withBackoff) UpdateAgentStatus(agentID, agentStatus string) error {
-	return b.withBackoff(func() error {
+	op := fmt.Sprintf("UpdateAgentScatus=%s,%s", agentID, agentStatus)
+	return b.withBackoff(op, func() error {
 		return b.PersisterCheckStateUpdater.UpdateAgentStatus(agentID, agentStatus)
 	})
 }
 
 func (b withBackoff) UpdateAgentHeartbeat(agentID string) error {
-	return b.withBackoff(func() error {
+	op := fmt.Sprintf("UpdateAgentHeartbeat=%s", agentID)
+	return b.withBackoff(op, func() error {
 		return b.PersisterCheckStateUpdater.UpdateAgentHeartbeat(agentID)
 	})
 }
 
 func (b withBackoff) UpdateCheckAgent(checkID, agentID string) error {
-	return b.withBackoff(func() error {
+	op := fmt.Sprintf("UpdateCheckAgent, CheckID=%s,AgentID=%s", checkID, agentID)
+	return b.withBackoff(op, func() error {
 		return b.PersisterCheckStateUpdater.UpdateCheckAgent(checkID, agentID)
 	})
 }
 
 func (b withBackoff) UpdateCheckState(checkID string, state check.State) error {
-	return b.withBackoffWithShortCircuit(
+	op := fmt.Sprintf("UpdateCheckState, CheckID=%s, status=%s", checkID, state.Status)
+	return b.withBackoffWithShortCircuit(op,
 		func() error {
 			return b.PersisterCheckStateUpdater.UpdateCheckState(checkID, state)
 		}, func(err error) bool {
@@ -113,13 +119,15 @@ func (b withBackoff) UpdateCheckState(checkID string, state check.State) error {
 }
 
 func (b withBackoff) UpdateCheckRaw(checkID string, rawLink string) error {
-	return b.withBackoff(func() error {
+	op := fmt.Sprintf("UpdateCheckRaw, CheckID=%s", checkID)
+	return b.withBackoff(op, func() error {
 		return b.PersisterCheckStateUpdater.UpdateCheckRaw(checkID, rawLink)
 	})
 }
 
 func (b withBackoff) UpdateCheckReport(checkID string, reportLink string) error {
-	return b.withBackoff(func() error {
+	op := fmt.Sprintf("UpdateCheckReport, CheckID=%s", checkID)
+	return b.withBackoff(op, func() error {
 		return b.PersisterCheckStateUpdater.UpdateCheckReport(checkID, reportLink)
 	})
 }
