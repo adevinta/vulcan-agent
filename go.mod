@@ -16,6 +16,7 @@ require (
 	github.com/docker/go-units v0.4.0 // indirect
 	github.com/google/go-cmp v0.5.4
 	github.com/google/uuid v1.2.0
+	github.com/gorilla/websocket v1.4.2
 	github.com/julienschmidt/httprouter v1.3.0
 	github.com/lestrrat-go/backoff v1.0.0
 	github.com/opencontainers/go-digest v1.0.0-rc1 // indirect

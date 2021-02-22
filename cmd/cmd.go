@@ -12,6 +12,7 @@ import (
 
 	"github.com/julienschmidt/httprouter"
 
+	"github.com/adevinta/vulcan-agent/aborted"
 	"github.com/adevinta/vulcan-agent/api"
 	httpapi "github.com/adevinta/vulcan-agent/api/http"
 	"github.com/adevinta/vulcan-agent/backend"
@@ -21,7 +22,9 @@ import (
 	"github.com/adevinta/vulcan-agent/queue"
 	"github.com/adevinta/vulcan-agent/queue/sqs"
 	"github.com/adevinta/vulcan-agent/results"
+	"github.com/adevinta/vulcan-agent/retryer"
 	"github.com/adevinta/vulcan-agent/stateupdater"
+	"github.com/adevinta/vulcan-agent/stream"
 )
 
 // BackendCreator defines the shape of the function that will be called by the
@@ -48,35 +51,64 @@ func MainWithExitCode(bc BackendCreator) int {
 		fmt.Fprintf(os.Stderr, "error reading creating log: %v", err)
 		return 1
 	}
+
+	// Build the backend.
 	b, err := bc(l, cfg, cfg.Check.Vars)
 	if err != nil {
 		l.Errorf("error creating the backend to run the checks %v", err)
 		return 1
 	}
 
-	r, err := results.New(cfg.Uploader.Endpoint, time.Duration(cfg.Uploader.Timeout*int(time.Second)))
-	if err != nil {
-		l.Errorf("error creating results client %+v", err)
-		return 1
-	}
+	// Build the results service.
+	timeout := time.Duration(cfg.Uploader.Timeout * int(time.Second))
+	interval := cfg.Uploader.RetryInterval
+	retries := cfg.Uploader.Retries
+	re := retryer.NewRetryer(retries, interval, l)
+	endpoint := cfg.Uploader.Endpoint
+	r := results.New(endpoint, re, timeout)
 
+	// Build the sqs writer.
 	qw, err := sqs.NewWriter(cfg.SQSWriter.ARN, cfg.SQSWriter.Endpoint, l)
 	if err != nil {
 		l.Errorf("error creating sqs writer %+v", err)
 		return 1
 	}
 
+	// Build the state updater.
 	stateUpdater := stateupdater.New(qw)
 	updater := struct {
 		*stateupdater.Updater
 		*results.Uploader
 	}{stateUpdater, r}
 
+	// Build the aborted checks component that will be used to know if a check
+	// has been aborted or not defore starting to execute it.
+	endpoint = cfg.Stream.QueryEndpoint
+	retries = cfg.Stream.Retries
+	interval = cfg.Stream.RetryInterval
+	re = retryer.NewRetryer(retries, interval, l)
+	abortedChecks, err := aborted.New(l, endpoint, re)
+	if err != nil {
+		l.Errorf("error creating aborted checks %+v", abortedChecks)
+		return 1
+	}
+
 	runnerCfg := jobrunner.RunnerConfig{
 		MaxTokens:      cfg.Agent.ConcurrentJobs,
 		DefaultTimeout: cfg.Agent.Timeout,
 	}
-	jrunner := jobrunner.New(l, b, updater, runnerCfg)
+
+	jrunner := jobrunner.New(l, b, updater, abortedChecks, runnerCfg)
+
+	stream := stream.New(l, jrunner, re, endpoint)
+	sCtx, cancelStream := context.WithCancel(context.Background())
+	streamDone, err := stream.ListenAndProcess(sCtx)
+	if err != nil {
+		l.Errorf("error starting stream: %+v", err)
+		cancelStream()
+		return 1
+	}
+
 	qr, err := sqs.NewReader(l, cfg.SQSReader, jrunner)
 	stats := struct {
 		*jobrunner.Runner
@@ -120,27 +152,42 @@ func MainWithExitCode(bc BackendCreator) int {
 	case err = <-stopperDone:
 		l.Infof("shutting down agent because more than %+v seconds elapsed without messages read", maxTimeNoMsg.Seconds())
 		cancelqr()
+	case err = <-httpDone:
+		l.Errorf("error running agent http api %+v", err)
+		cancelqr()
 	}
 
 	// Wait fot the queue stopper to finish.
 	err = <-stopperDone
 	if err != nil && !errors.Is(err, context.Canceled) {
+		cancelStream()
 		l.Errorf("error stopping the reader tracker %+v", err)
 	}
 	// Wait for all the pending jobs to finish.
 	err = <-qrdone
 	if err != nil && !errors.Is(err, context.Canceled) {
+		cancelStream()
 		l.Errorf("error stopping agent %+v", err)
 	}
 	// Stop listening for api calls.
 	err = srv.Shutdown(context.Background())
 	if err != nil {
+		cancelStream()
 		l.Errorf("error stoping http server: %+v", err)
 		return 1
 	}
 	err = <-httpDone
 	if err != nil && !errors.Is(err, http.ErrServerClosed) {
+		cancelStream()
 		l.Errorf("http server stopped with error: %+v", err)
+		return 1
+	}
+	// Stop the stream.
+	cancelStream()
+	// Wait for the stream to finish.
+	err = <-streamDone
+	if err != nil {
+		l.Errorf("stream stopped with error %+v", err)
 		return 1
 	}
 	return 0

@@ -11,10 +11,11 @@ import (
 	"time"
 
 	"github.com/adevinta/vulcan-agent/log"
+	"github.com/adevinta/vulcan-agent/retryer"
 	report "github.com/adevinta/vulcan-report"
 )
 
-//ReportData represents the payload for report upload requests
+// ReportData represents the payload for report upload requests.
 type ReportData struct {
 	Report        string    `json:"report"`
 	CheckID       string    `json:"check_id"`
@@ -22,7 +23,13 @@ type ReportData struct {
 	ScanStartTime time.Time `json:"scan_start_time"`
 }
 
-//RawData represents the payload for raw upload requests
+// Retryer represents the functions used by the Uploader for retrying http
+// requests.
+type Retryer interface {
+	WithRetries(op string, exec func() error) error
+}
+
+// RawData represents the payload for raw upload requests.
 type RawData struct {
 	Raw           []byte    `json:"raw"`
 	CheckID       string    `json:"check_id"`
@@ -30,20 +37,21 @@ type RawData struct {
 	ScanStartTime time.Time `json:"scan_start_time"`
 }
 
-//Uploader represents the Uploader class, responsible for uploading reports and
-//logs to vulcan-results
+// Uploader is responsible for uploading reports and logs to vulcan-results.
 type Uploader struct {
+	retryer  Retryer
 	endpoint string
 	timeout  time.Duration
 	log      log.Logger
 }
 
-//New returns a new Uploader object pointing to the given endpoint
-func New(endpoint string, timeout time.Duration) (*Uploader, error) {
+// New returns a new Uploader object pointing to the given endpoint.
+func New(endpoint string, retryer Retryer, timeout time.Duration) *Uploader {
 	return &Uploader{
+		retryer:  retryer,
 		endpoint: endpoint,
 		timeout:  timeout,
-	}, nil
+	}
 }
 
 // UpdateCheckReport stores the report of a check in the results service and
@@ -67,7 +75,17 @@ func (u *Uploader) UpdateCheckReport(checkID string, scanStartTime time.Time, re
 		return "", err
 	}
 
-	return u.jsonRequest(path, reportDataBytes)
+	var reportLocation string
+	if u.retryer != nil {
+		u.retryer.WithRetries("Uploader.UploadLogs", func() error {
+			reportLocation, err = u.jsonRequest(path, reportDataBytes)
+			return err
+		})
+	} else {
+		reportLocation, err = u.jsonRequest(path, reportDataBytes)
+	}
+
+	return reportLocation, err
 }
 
 // UpdateCheckRaw stores the log of the execution of a check in results service
@@ -86,13 +104,20 @@ func (u *Uploader) UpdateCheckRaw(checkID string, scanStartTime time.Time, raw [
 	if err != nil {
 		return "", err
 	}
-
-	return u.jsonRequest(path, rawDataBytes)
+	var logLocation string
+	if u.retryer != nil {
+		u.retryer.WithRetries("Uploader.UploadLogs", func() error {
+			logLocation, err = u.jsonRequest(path, rawDataBytes)
+			return err
+		})
+	} else {
+		logLocation, err = u.jsonRequest(path, rawDataBytes)
+	}
+	return logLocation, err
 }
 
 func (u *Uploader) jsonRequest(route string, reqBody []byte) (string, error) {
 	var err error
-
 	url, err := url.Parse(u.endpoint)
 	if err != nil {
 		return "", err
@@ -115,14 +140,16 @@ func (u *Uploader) jsonRequest(route string, reqBody []byte) (string, error) {
 	location, exists := res.Header["Location"]
 	if !exists || len(location) <= 0 {
 		body := u.tryReadBody(res)
-		return "", fmt.Errorf("invalid response uploading content to results,status: %s, response body: %s", res.Status, body)
+		errMsg := fmt.Sprintf("invalid response, status: %s, body: %s", res.Status, body)
+		err := fmt.Errorf("%s, %w", errMsg, retryer.ErrPermanent)
+		return "", err
 	}
-
 	if res.StatusCode == http.StatusCreated && len(location) > 0 {
 		return location[0], nil
 	}
-
-	return "", fmt.Errorf("request returned %v status", res.Status)
+	errMsg := fmt.Sprintf("invalid response status: %s", res.Status)
+	err = fmt.Errorf("%s, %w", errMsg, retryer.ErrPermanent)
+	return "", err
 }
 
 func (u *Uploader) tryReadBody(res *http.Response) string {

@@ -33,6 +33,7 @@ type AgentConfig struct {
 // StreamConfig defines the configuration for the event stream.
 type StreamConfig struct {
 	Endpoint      string `toml:"endpoint"`
+	QueryEndpoint string `toml:"query_endpoint"`
 	Timeout       int    `toml:"timeout"`
 	Retries       int    `toml:"retries"`
 	RetryInterval int    `toml:"retry_interval"`
@@ -40,10 +41,13 @@ type StreamConfig struct {
 
 // UploaderConfig defines the configuration for the results service.
 type UploaderConfig struct {
-	Endpoint string `toml:"endpoint"`
-	Timeout  int    `toml:"timeout"`
+	Endpoint      string `toml:"endpoint"`
+	Timeout       int    `toml:"timeout"`
+	Retries       int    `toml:"retries"`
+	RetryInterval int    `toml:"retry_interval"`
 }
 
+// SQSReader defines the config of sqs reader.
 type SQSReader struct {
 	Endpoint          string `toml:"endpoint"`
 	ARN               string `toml:"arn"`
@@ -52,6 +56,7 @@ type SQSReader struct {
 	ProcessQuantum    int    `toml:"process_quantum"`
 }
 
+// SQSWriter defines the config params from the sqs writer.
 type SQSWriter struct {
 	Endpoint string `toml:"endpoint"`
 	ARN      string `toml:"arn"`

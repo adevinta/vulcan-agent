@@ -209,8 +209,10 @@ loop:
 			r.log.Debugf("message with id: %s processed", *msg.MessageId)
 			timer.Stop()
 			if !delete {
+				r.log.Debugf("error processing message with id: %s processed, message not deleted", *msg.MessageId)
 				break loop
 			}
+
 			input := &sqs.DeleteMessageInput{
 				QueueUrl:      r.receiveParams.QueueUrl,
 				ReceiptHandle: msg.ReceiptHandle,

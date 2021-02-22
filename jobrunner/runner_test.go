@@ -71,6 +71,19 @@ func (mb *mockBackend) Run(ctx context.Context, params backend.RunParams) (<-cha
 
 type jRunnerStateChecker func(r *Runner) string
 
+type inMemAbortedChecks struct {
+	aborted map[string]struct{}
+	err     error
+}
+
+func (ia *inMemAbortedChecks) IsAborted(ID string) (bool, error) {
+	if ia.err != nil {
+		return false, ia.err
+	}
+	_, ok := ia.aborted[ID]
+	return ok, nil
+}
+
 func TestRunner_ProcessMessage(t *testing.T) {
 	type fields struct {
 		Backend        backend.Backend
@@ -78,6 +91,7 @@ func TestRunner_ProcessMessage(t *testing.T) {
 		Logger         log.Logger
 		CheckUpdater   CheckStateUpdater
 		cAborter       *checkAborter
+		aborted        AbortedChecks
 		defaultTimeout time.Duration
 	}
 	type args struct {
@@ -113,6 +127,7 @@ func TestRunner_ProcessMessage(t *testing.T) {
 				cAborter: &checkAborter{
 					cancels: sync.Map{},
 				},
+				aborted:        &inMemAbortedChecks{make(map[string]struct{}), nil},
 				defaultTimeout: time.Duration(10 * time.Second),
 				Tokens:         make(chan interface{}, 10),
 				Logger:         &log.NullLog{},
@@ -173,6 +188,7 @@ func TestRunner_ProcessMessage(t *testing.T) {
 				cAborter: &checkAborter{
 					cancels: sync.Map{},
 				},
+				aborted:        &inMemAbortedChecks{make(map[string]struct{}), nil},
 				defaultTimeout: time.Duration(10 * time.Second),
 				Tokens:         make(chan interface{}, 10),
 				Logger:         &log.NullLog{},
@@ -218,6 +234,7 @@ func TestRunner_ProcessMessage(t *testing.T) {
 				cAborter: &checkAborter{
 					cancels: sync.Map{},
 				},
+				aborted:        &inMemAbortedChecks{make(map[string]struct{}), nil},
 				defaultTimeout: time.Duration(10 * time.Second),
 				Tokens:         make(chan interface{}, 10),
 				Logger:         &log.NullLog{},
@@ -289,6 +306,7 @@ func TestRunner_ProcessMessage(t *testing.T) {
 				cAborter: &checkAborter{
 					cancels: sync.Map{},
 				},
+				aborted:        &inMemAbortedChecks{make(map[string]struct{}), nil},
 				defaultTimeout: time.Duration(10 * time.Second),
 				Tokens:         make(chan interface{}, 10),
 				Logger:         &log.NullLog{},
@@ -336,6 +354,62 @@ func TestRunner_ProcessMessage(t *testing.T) {
 				return fmt.Sprintf("%s%s", rawsDiff, updateDiff)
 			},
 		},
+
+		{
+			name: "DoesNotRunAbortedChecks",
+			fields: fields{
+				Backend: &mockBackend{
+					CheckRunner: func(ctx context.Context, params backend.RunParams) (<-chan backend.RunResult, error) {
+						var res = make(chan backend.RunResult)
+						go func() {
+							output, err := json.Marshal(params)
+							if err != nil {
+								panic(err)
+							}
+							results := backend.RunResult{
+								Output: output,
+								Error:  context.Canceled,
+							}
+							res <- results
+						}()
+						return res, nil
+					},
+				},
+				cAborter: &checkAborter{
+					cancels: sync.Map{},
+				},
+				aborted: &inMemAbortedChecks{
+					aborted: map[string]struct{}{
+						runJobFixture1.CheckID: {},
+					},
+				},
+				defaultTimeout: time.Duration(10 * time.Second),
+				Tokens:         make(chan interface{}, 10),
+				Logger:         &log.NullLog{},
+				CheckUpdater:   &inMemChecksUpdater{},
+			},
+			args: args{
+				msg:   string(mustMarshal(runJobFixture1)),
+				token: token{},
+			},
+			want: true,
+			wantState: func(r *Runner) string {
+				updater := r.CheckUpdater.(*inMemChecksUpdater)
+				gotRaws := updater.raws
+				var wantRaws []CheckRaw
+				gotUpdates := updater.updates
+				state := stateupdater.StatusAborted
+				wantUpdates := []stateupdater.CheckState{
+					{
+						ID:     runJobFixture1.CheckID,
+						Status: &state,
+					},
+				}
+				rawsDiff := cmp.Diff(wantRaws, gotRaws)
+				updateDiff := cmp.Diff(wantUpdates, gotUpdates)
+				return fmt.Sprintf("%s%s", rawsDiff, updateDiff)
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -344,6 +418,7 @@ func TestRunner_ProcessMessage(t *testing.T) {
 				Tokens:         tt.fields.Tokens,
 				Logger:         tt.fields.Logger,
 				CheckUpdater:   tt.fields.CheckUpdater,
+				abortedChecks:  tt.fields.aborted,
 				cAborter:       tt.fields.cAborter,
 				defaultTimeout: tt.fields.defaultTimeout,
 			}

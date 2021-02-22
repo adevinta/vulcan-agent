@@ -19,7 +19,8 @@ var (
 	// does not pass a valid token written by Runner in its Token channel.
 	ErrInvalidToken = errors.New("invalid token")
 
-	// ErrCheckWithSameID is returned when the runner is about to
+	// ErrCheckWithSameID is returned when the runner is about to run a check
+	// with and ID equal to the ID of an already running check.
 	ErrCheckWithSameID = errors.New("check with a same ID is already runing")
 )
 
@@ -78,9 +79,16 @@ func (c *checkAborter) Runing() int {
 type CheckStateUpdater interface {
 	UpdateState(stateupdater.CheckState) error
 	UpdateCheckRaw(checkID string, startTime time.Time, raw []byte) (string, error)
-	//UpdateCheckReport(checkID string, startTime time.Time, report report.Report) (string, error)
 }
 
+// AbortedChecks defines the shape of the component needed by a Runner in order
+// to know if a check is aborted before it is exected.
+type AbortedChecks interface {
+	IsAborted(ID string) (bool, error)
+}
+
+// Runner runs the checks associated to a concreate message by receiving calls
+// to it ProcessMessage function.
 type Runner struct {
 	Backend backend.Backend
 	// Tokens contains the currently free tokens of a runner. Any
@@ -91,6 +99,7 @@ type Runner struct {
 	Logger         log.Logger
 	CheckUpdater   CheckStateUpdater
 	cAborter       *checkAborter
+	abortedChecks  AbortedChecks
 	defaultTimeout time.Duration
 }
 
@@ -104,7 +113,7 @@ type RunnerConfig struct {
 // maximun number of tokens. The maximum number of tokens is the maximun number
 // jobs that the Runner can execute at the same time.
 func New(logger log.Logger, backend backend.Backend, checkUpdater CheckStateUpdater,
-	cfg RunnerConfig) *Runner {
+	aborted AbortedChecks, cfg RunnerConfig) *Runner {
 	var tokens = make(chan interface{}, cfg.MaxTokens)
 	for i := 0; i < cfg.MaxTokens; i++ {
 		tokens <- token{}
@@ -116,6 +125,7 @@ func New(logger log.Logger, backend backend.Backend, checkUpdater CheckStateUpda
 		cAborter: &checkAborter{
 			cancels: sync.Map{},
 		},
+		abortedChecks:  aborted,
 		Logger:         logger,
 		defaultTimeout: time.Duration(cfg.DefaultTimeout * int(time.Second)),
 	}
@@ -156,10 +166,33 @@ func (cr *Runner) runJob(msg string, t interface{}, processed chan bool) {
 		return
 	}
 	j := &Job{}
-	// err := j.UnmarshalJSON([]byte(msg))
 	err := json.Unmarshal([]byte(msg), j)
 	if err != nil {
 		cr.finishJob("", processed, true, err)
+		return
+	}
+
+	// Check if the check has been aborted.
+	aborted, err := cr.abortedChecks.IsAborted(j.CheckID)
+	if err != nil {
+		err = fmt.Errorf("error querying aborted checks %w", err)
+		cr.finishJob(j.CheckID, processed, false, err)
+		return
+	}
+
+	if aborted {
+		status := stateupdater.StatusAborted
+		err = cr.CheckUpdater.UpdateState(
+			stateupdater.CheckState{
+				ID:     j.CheckID,
+				Status: &status,
+			})
+		if err != nil {
+			err = fmt.Errorf("error updating the status of the check: %s, error: %w", j.CheckID, err)
+			cr.finishJob(j.CheckID, processed, false, err)
+			return
+		}
+		cr.finishJob(j.CheckID, processed, true, nil)
 		return
 	}
 
@@ -251,7 +284,7 @@ func (cr *Runner) runJob(msg string, t interface{}, processed chan bool) {
 		Status: &status,
 	})
 	if err != nil {
-		err = fmt.Errorf("error updating the link to the logs of the check: %s, error: %w", j.CheckID, err)
+		err = fmt.Errorf("error updating the status of the check: %s, error: %w", j.CheckID, err)
 	}
 	cr.finishJob(j.CheckID, processed, err == nil, err)
 }
@@ -270,8 +303,8 @@ func (cr *Runner) finishJob(checkID string, processed chan<- bool, delete bool, 
 	default:
 		cr.Logger.Errorf("error, unexpected lock when writting to the tokens channel")
 	}
-	// Signal the caller that the job related to a message is finalized.
-	// It also states if the message related to the job must be deleted or not.
+	// Signal the caller that the job related to a message is finalized. It also
+	// states if the message related to the job must be deleted or not.
 	processed <- delete
 	close(processed)
 }
