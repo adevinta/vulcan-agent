@@ -1,9 +1,13 @@
 github.com/BurntSushi/toml v0.3.1 h1:WXkYYl6Yr3qBf1K79EBnL4mak0OimBfB0XUf9Vl28OQ=
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
+github.com/DataDog/datadog-go v3.7.1+incompatible h1:HmA9qHVrHIAqpSvoCYJ+c6qst0lgqEhNW6/KwfkHbS8=
+github.com/DataDog/datadog-go v3.7.1+incompatible/go.mod h1:LButxg5PwREeZtORoXG3tL4fMGNddJ+vMq1mwgfaqoQ=
 github.com/Microsoft/go-winio v0.4.14 h1:+hMXMk01us9KgxGb7ftKQt2Xpf5hH/yky+TDA+qxleU=
 github.com/Microsoft/go-winio v0.4.14/go.mod h1:qXqCSQ3Xa7+6tgxaGTIe4Kpcdsi+P8jBhyzoq1bpyYA=
 github.com/adevinta/dockerutils v0.0.0-20190826104125-915f26bde8e5 h1:dAEZKbV4abwpd15H0S9TNsM1+b/pPrkodv3PrGMuyws=
 github.com/adevinta/dockerutils v0.0.0-20190826104125-915f26bde8e5/go.mod h1:Tf9DLLpE2bthMKu7ndZYc0jWnxyCY+KPvJGqn9RnqMU=
+github.com/adevinta/vulcan-metrics-client v0.0.0-20200617105830-6078a0e12ebd h1:gI+Ni3OjDLbA/ysKq+bdhwQHkTDCsDVWGM1I13gxaME=
+github.com/adevinta/vulcan-metrics-client v0.0.0-20200617105830-6078a0e12ebd/go.mod h1:M+oEghaodOSKYMScXw7Vpz9DypFo6PbgIEJrAexyWBo=
 github.com/adevinta/vulcan-report v0.0.0-20190503133936-d8a2d4cb18ff h1:ZazuZSOfV8oo70SWdjLQi+In4GSmJCA2rwsliyz9KNs=
 github.com/adevinta/vulcan-report v0.0.0-20190503133936-d8a2d4cb18ff/go.mod h1:GtAon6TymHFTOPwRdR7SHun/TSM1kyPMQYXxGLTR8eQ=
 github.com/aws/aws-sdk-go v1.30.11 h1:bJoa1QGyyAV4COx1SXpf+LElFVVnOreG6KM0jIxwZq0=
