@@ -91,6 +91,7 @@ func MainWithExitCode(bc BackendCreator) int {
 	interval = cfg.Stream.RetryInterval
 	re = retryer.NewRetryer(retries, interval, l)
 	if endpoint == "" {
+		l.Infof("stream query_endpoint is empty, the agent will not check for aborted checks")
 		abortedChecks = &aborted.None{}
 	} else {
 		abortedChecks, err = aborted.New(l, endpoint, re)
