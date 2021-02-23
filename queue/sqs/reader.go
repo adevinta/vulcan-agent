@@ -209,7 +209,7 @@ loop:
 			r.log.Debugf("message with id: %s processed", *msg.MessageId)
 			timer.Stop()
 			if !delete {
-				r.log.Debugf("error processing message with id: %s processed, message not deleted", *msg.MessageId)
+				r.log.Debugf("unexpected error processing message with id: %s, message not deleted", *msg.MessageId)
 				break loop
 			}
 
@@ -220,7 +220,7 @@ loop:
 			r.log.Debugf("deleting message with id: %s", *msg.MessageId)
 			_, err := r.sqs.DeleteMessage(input)
 			if err != nil {
-				r.log.Errorf("error deleting message with id: %s, error: %+v", *msg.MessageId, err)
+				r.log.Errorf("deleting message with id: %s, error: %+v", *msg.MessageId, err)
 				break loop
 			}
 			r.log.Debugf("message with id: %s deleted", *msg.MessageId)
