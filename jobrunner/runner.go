@@ -192,6 +192,7 @@ func (cr *Runner) runJob(msg string, t interface{}, processed chan bool) {
 			cr.finishJob(j.CheckID, processed, false, err)
 			return
 		}
+		cr.Logger.Infof("check %s already aborted", j.CheckID)
 		cr.finishJob(j.CheckID, processed, true, nil)
 		return
 	}
@@ -265,7 +266,7 @@ func (cr *Runner) runJob(msg string, t interface{}, processed chan bool) {
 		return
 	}
 	// The only times when this component has to set the state of a check are
-	// when the check is canceled or timed. That's because, in those cases, it
+	// when the check is canceled or timedout. That's because, in those cases, it
 	// is possible for the check to not have had time to set the state itself.
 	var status string
 	if errors.Is(execErr, context.DeadlineExceeded) {
