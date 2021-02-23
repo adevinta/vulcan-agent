@@ -19,6 +19,7 @@ import (
 	"github.com/adevinta/vulcan-agent/config"
 	"github.com/adevinta/vulcan-agent/jobrunner"
 	"github.com/adevinta/vulcan-agent/log"
+	"github.com/adevinta/vulcan-agent/metrics"
 	"github.com/adevinta/vulcan-agent/queue"
 	"github.com/adevinta/vulcan-agent/queue/sqs"
 	"github.com/adevinta/vulcan-agent/results"
@@ -100,7 +101,11 @@ func MainWithExitCode(bc BackendCreator) int {
 
 	jrunner := jobrunner.New(l, b, updater, abortedChecks, runnerCfg)
 
-	stream := stream.New(l, jrunner, re, endpoint)
+	// Setup metrics.
+	metrics := metrics.NewMetrics(cfg.DataDog, jrunner)
+
+	endpoint = cfg.Stream.Endpoint
+	stream := stream.New(l, metrics, re, endpoint)
 	sCtx, cancelStream := context.WithCancel(context.Background())
 	streamDone, err := stream.ListenAndProcess(sCtx)
 	if err != nil {
@@ -141,6 +146,9 @@ func MainWithExitCode(bc BackendCreator) int {
 	}
 
 	stopperDone := qStopper.Track(ctxqr)
+
+	metricsDone := metrics.StartPooling(ctxqr)
+
 	l.Infof("agent running on address %s", srv.Addr)
 	sig := make(chan os.Signal, 1)
 	signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)
@@ -148,16 +156,20 @@ func MainWithExitCode(bc BackendCreator) int {
 	select {
 	case <-sig:
 		// Signal the sqs queue reader to stop reading messages from the queue.
+		l.Infof("SIG received, stoping sqs queue reader")
 		cancelqr()
 	case err = <-stopperDone:
-		l.Infof("shutting down agent because more than %+v seconds elapsed without messages read", maxTimeNoMsg.Seconds())
+		msg := "shutting down agent because more than %+d seconds elapsed without messages read"
+		l.Infof(msg, maxTimeNoMsg.Seconds())
 		cancelqr()
 	case err = <-httpDone:
 		l.Errorf("error running agent http api %+v", err)
 		cancelqr()
 	}
 
-	// Wait fot the queue stopper to finish.
+	l.Infof("wating for the checks to finish before stoping the agent")
+
+	// Wait for the queue stopper to finish.
 	err = <-stopperDone
 	if err != nil && !errors.Is(err, context.Canceled) {
 		cancelStream()
@@ -169,6 +181,10 @@ func MainWithExitCode(bc BackendCreator) int {
 		cancelStream()
 		l.Errorf("error stopping agent %+v", err)
 	}
+
+	// Wait for the metrics to stop pooling.
+	<-metricsDone
+
 	// Stop listening for api calls.
 	err = srv.Shutdown(context.Background())
 	if err != nil {
@@ -186,9 +202,10 @@ func MainWithExitCode(bc BackendCreator) int {
 	cancelStream()
 	// Wait for the stream to finish.
 	err = <-streamDone
-	if err != nil {
+	if err != nil && !errors.Is(err, context.Canceled) {
 		l.Errorf("stream stopped with error %+v", err)
 		return 1
 	}
+	l.Infof("agent finished gracefully")
 	return 0
 }

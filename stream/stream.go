@@ -36,16 +36,16 @@ type Message struct {
 	Action  string `json:"action"`
 }
 
-// AbortProcessor defines the function that the Stream will call when an abort
+// MsgProcessor defines the function that the Stream will call when an abort
 // message has been received.
-type AbortProcessor interface {
+type MsgProcessor interface {
 	AbortCheck(ID string)
 }
 
 // Stream reads messages from the stream server and process them using a given
 // message processor.
 type Stream struct {
-	p        AbortProcessor
+	p        MsgProcessor
 	dialer   *WSDialerWithRetries
 	l        log.Logger
 	endpoint string
@@ -53,12 +53,13 @@ type Stream struct {
 
 // New creates a new stream that will use the given processor to process the messages
 // received by the Stream.
-func New(l log.Logger, processor AbortProcessor, retryer Retryer, endpoint string) *Stream {
+func New(l log.Logger, processor MsgProcessor, retryer Retryer, endpoint string) *Stream {
 	dialer := NewWSDialerWithRetries(websocket.DefaultDialer, l, retryer)
 	return &Stream{
-		p:      processor,
-		l:      l,
-		dialer: dialer,
+		p:        processor,
+		l:        l,
+		dialer:   dialer,
+		endpoint: endpoint,
 	}
 }
 
