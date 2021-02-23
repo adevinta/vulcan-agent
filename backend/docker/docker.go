@@ -15,7 +15,6 @@ import (
 	"github.com/docker/docker/api/types/network"
 	"github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/stdcopy"
-	"github.com/lestrrat-go/backoff"
 
 	"github.com/adevinta/vulcan-agent/backend"
 	"github.com/adevinta/vulcan-agent/config"
@@ -39,6 +38,12 @@ type Client interface {
 	Pull(ctx context.Context, imageRef string) error
 }
 
+// Retryer represents the functions used by the docker backend for retrying
+// docker registry operations.
+type Retryer interface {
+	WithRetries(op string, exec func() error) error
+}
+
 // Docker implements a docker backend for runing jobs if the local docker.
 type Docker struct {
 	config    config.RegistryConfig
@@ -46,11 +51,12 @@ type Docker struct {
 	checkVars backend.CheckVars
 	log       log.Logger
 	cli       Client //DockerClient
+	retryer   Retryer
 }
 
 // New created a new Docker backend using the given config, agent api addres and
 // CheckVars.
-func New(log log.Logger, cfg config.RegistryConfig, agentAddr string, vars backend.CheckVars) (*Docker, error) {
+func New(log log.Logger, cfg config.RegistryConfig, retryer Retryer, agentAddr string, vars backend.CheckVars) (*Docker, error) {
 	envCli, err := client.NewEnvClient()
 	if err != nil {
 		return &Docker{}, err
@@ -63,6 +69,7 @@ func New(log log.Logger, cfg config.RegistryConfig, agentAddr string, vars backe
 		log:       log,
 		checkVars: vars,
 		cli:       cli,
+		retryer:   retryer,
 	}
 	if cfg.Server == "" {
 		return b, nil
@@ -89,7 +96,7 @@ func New(log log.Logger, cfg config.RegistryConfig, agentAddr string, vars backe
 // will contain the result of the execution when it finishes.
 func (b *Docker) Run(ctx context.Context, params backend.RunParams) (<-chan backend.RunResult, error) {
 	if b.config.Server != "" {
-		err := b.pullWithBackoff(ctx, params.Image)
+		err := b.pull(ctx, params.Image)
 		if err != nil {
 			return nil, err
 		}
@@ -173,23 +180,11 @@ func (b Docker) getContainerlogs(ID string) ([]byte, error) {
 	return out, nil
 }
 
-func (b Docker) pullWithBackoff(ctx context.Context, image string) error {
-	backoffPolicy := backoff.NewExponential(
-		backoff.WithInterval(time.Duration(b.config.BackoffInterval*int(time.Second))),
-		backoff.WithMaxRetries(b.config.BackoffMaxRetries),
-		backoff.WithJitterFactor(b.config.BackoffJitterFactor),
-	)
-	bState, cancel := backoffPolicy.Start(context.Background())
-	defer cancel()
-
-	for backoff.Continue(bState) {
-		err := b.cli.Pull(ctx, image)
-		if err == nil {
-			return nil
-		}
-		b.log.Errorf("Error pulling Docker image %s", image)
-	}
-	return errors.New("backoff retry exceeded pulling Docker image")
+func (b Docker) pull(ctx context.Context, image string) error {
+	err := b.retryer.WithRetries("PullDockerImage", func() error {
+		return b.cli.Pull(ctx, image)
+	})
+	return err
 }
 
 // getRunConfig will generate a docker.RunConfig for a given job.

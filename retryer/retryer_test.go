@@ -4,10 +4,8 @@ import (
 	"errors"
 	"fmt"
 	"testing"
-	"time"
 
 	"github.com/adevinta/vulcan-agent/log"
-	"github.com/lestrrat-go/backoff"
 )
 
 var errTest = errors.New("test")
@@ -24,9 +22,9 @@ func (e *ExecTester) exec() error {
 
 func TestRetryer_WithRetries(t *testing.T) {
 	type fields struct {
-		policy  backoff.Policy
-		log     log.Logger
-		retries int
+		log      log.Logger
+		interval int
+		retries  int
 	}
 	tests := []struct {
 		name        string
@@ -39,12 +37,9 @@ func TestRetryer_WithRetries(t *testing.T) {
 		{
 			name: "DoesNotRetryIfNoError",
 			fields: fields{
-				retries: 2,
-				policy: backoff.NewExponential(
-					backoff.WithInterval(time.Duration(1)*time.Millisecond),
-					backoff.WithJitterFactor(0.05),
-					backoff.WithMaxRetries(2)),
-				log: &log.NullLog{},
+				retries:  2,
+				interval: 1,
+				log:      &log.NullLog{},
 			},
 			exec: &ExecTester{
 				op: func(calls int) error {
@@ -57,12 +52,9 @@ func TestRetryer_WithRetries(t *testing.T) {
 		{
 			name: "RetriesIfNotShortCircuit",
 			fields: fields{
-				retries: 2,
-				policy: backoff.NewExponential(
-					backoff.WithInterval(time.Duration(1)*time.Millisecond),
-					backoff.WithJitterFactor(0.05),
-					backoff.WithMaxRetries(2)),
-				log: &log.NullLog{},
+				retries:  2,
+				interval: 1,
+				log:      &log.NullLog{},
 			},
 			exec: &ExecTester{
 				op: func(calls int) error {
@@ -75,12 +67,9 @@ func TestRetryer_WithRetries(t *testing.T) {
 		{
 			name: "StopRetryingIfPermanentError",
 			fields: fields{
-				retries: 2,
-				policy: backoff.NewExponential(
-					backoff.WithInterval(time.Duration(1)*time.Millisecond),
-					backoff.WithJitterFactor(0.05),
-					backoff.WithMaxRetries(2)),
-				log: &log.NullLog{},
+				retries:  2,
+				interval: 1,
+				log:      &log.NullLog{},
 			},
 			exec: &ExecTester{
 				op: func(calls int) error {
@@ -96,12 +85,9 @@ func TestRetryer_WithRetries(t *testing.T) {
 		{
 			name: "ShortCircuits",
 			fields: fields{
-				retries: 2,
-				policy: backoff.NewExponential(
-					backoff.WithInterval(time.Duration(1)*time.Millisecond),
-					backoff.WithJitterFactor(0.05),
-					backoff.WithMaxRetries(2)),
-				log: &log.NullLog{},
+				retries:  2,
+				interval: 1,
+				log:      &log.NullLog{},
 			},
 			exec: &ExecTester{
 				op: func(calls int) error {
@@ -117,12 +103,9 @@ func TestRetryer_WithRetries(t *testing.T) {
 		{
 			name: "ShortCircuits",
 			fields: fields{
-				retries: 2,
-				policy: backoff.NewExponential(
-					backoff.WithInterval(time.Duration(1)*time.Millisecond),
-					backoff.WithJitterFactor(0.05),
-					backoff.WithMaxRetries(2)),
-				log: &log.NullLog{},
+				retries:  2,
+				interval: 1,
+				log:      &log.NullLog{},
 			},
 			exec: &ExecTester{
 				op: func(calls int) error {
@@ -139,9 +122,9 @@ func TestRetryer_WithRetries(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			b := Retryer{
-				policy:  tt.fields.policy,
-				log:     tt.fields.log,
-				retries: tt.fields.retries,
+				interval: tt.fields.interval,
+				log:      tt.fields.log,
+				retries:  tt.fields.retries,
 			}
 			err := b.WithRetries(tt.op, tt.exec.exec)
 			if !errors.Is(err, tt.wantErr) {

@@ -10,6 +10,7 @@ import (
 	"github.com/adevinta/vulcan-agent/cmd"
 	"github.com/adevinta/vulcan-agent/config"
 	"github.com/adevinta/vulcan-agent/log"
+	"github.com/adevinta/vulcan-agent/retryer"
 )
 
 const defaultDockerIfaceName = "docker0"
@@ -35,7 +36,11 @@ func buildDockerBackend(l log.Logger, cfg config.Config, vars backend.CheckVars)
 	if err != nil {
 		return nil, err
 	}
-	return docker.New(l, cfg.Runtime.Docker.Registry, addr, vars)
+	interval := cfg.Runtime.Docker.Registry.BackoffInterval
+	retries := cfg.Runtime.Docker.Registry.BackoffMaxRetries
+	re := retryer.NewRetryer(retries, interval, l)
+
+	return docker.New(l, cfg.Runtime.Docker.Registry, re, addr, vars)
 }
 
 // getAgentAddr returns the current address of the agent API from the Docker network.
