@@ -82,16 +82,22 @@ func MainWithExitCode(bc BackendCreator) int {
 		*results.Uploader
 	}{stateUpdater, r}
 
+	var abortedChecks jobrunner.AbortedChecks
+
 	// Build the aborted checks component that will be used to know if a check
 	// has been aborted or not defore starting to execute it.
 	endpoint = cfg.Stream.QueryEndpoint
 	retries = cfg.Stream.Retries
 	interval = cfg.Stream.RetryInterval
 	re = retryer.NewRetryer(retries, interval, l)
-	abortedChecks, err := aborted.New(l, endpoint, re)
-	if err != nil {
-		l.Errorf("error creating aborted checks %+v", abortedChecks)
-		return 1
+	if endpoint == "" {
+		abortedChecks = &aborted.None{}
+	} else {
+		abortedChecks, err = aborted.New(l, endpoint, re)
+		if err != nil {
+			l.Errorf("error creating aborted checks %+v", abortedChecks)
+			return 1
+		}
 	}
 
 	runnerCfg := jobrunner.RunnerConfig{

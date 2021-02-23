@@ -100,3 +100,11 @@ func (c *Checks) get() ([]string, error) {
 		})
 	return ids, err
 }
+
+// None return always false when asked if a check is aborted.
+type None struct{}
+
+// IsAborted restruns always false.
+func (c *None) IsAborted(ID string) (bool, error) {
+	return false, nil
+}
