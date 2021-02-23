@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/adevinta/vulcan-agent/config"
+	"github.com/adevinta/vulcan-agent/log"
 	metrics "github.com/adevinta/vulcan-metrics-client"
 )
 
@@ -36,11 +37,12 @@ type Metrics struct {
 	Client  metrics.Client
 	Aborter Agent
 	AgentID string
+	Logger  log.Logger
 }
 
 // NewMetrics return a new struct which sends the defined metrics for the agent
 // to DD.
-func NewMetrics(cfg config.DatadogConfig, aborter Agent) *Metrics {
+func NewMetrics(l log.Logger, cfg config.DatadogConfig, aborter Agent) *Metrics {
 	if !cfg.Enabled {
 		return &Metrics{Enabled: false}
 	}
@@ -61,6 +63,7 @@ func NewMetrics(cfg config.DatadogConfig, aborter Agent) *Metrics {
 		Client:  metricsClient,
 		Aborter: aborter,
 		AgentID: agentID,
+		Logger:  l,
 	}
 	return pusher
 }
@@ -88,6 +91,7 @@ LOOP:
 		select {
 		case <-ticker.C:
 			n := p.Aborter.ChecksRunning()
+			p.Logger.Debugf("sending metric checks runing %d", n)
 			metric := metrics.Metric{
 				Name:  "vulcan.scan.check.running",
 				Typ:   metrics.Gauge,

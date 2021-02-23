@@ -109,7 +109,7 @@ func MainWithExitCode(bc BackendCreator) int {
 	jrunner := jobrunner.New(l, b, updater, abortedChecks, runnerCfg)
 
 	// Setup metrics.
-	metrics := metrics.NewMetrics(cfg.DataDog, jrunner)
+	metrics := metrics.NewMetrics(l, cfg.DataDog, jrunner)
 
 	endpoint = cfg.Stream.Endpoint
 	stream := stream.New(l, metrics, re, endpoint)
