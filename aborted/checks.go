@@ -2,7 +2,9 @@ package aborted
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"sync"
@@ -84,19 +86,19 @@ func (c *Checks) get() ([]string, error) {
 				return err
 			}
 			if resp.StatusCode != http.StatusOK {
-				errStr := fmt.Sprintf("error getting curent aborted checks, unexpected status code: %d", resp.StatusCode)
+				errStr := fmt.Sprintf("error getting current aborted checks, unexpected status code: %d", resp.StatusCode)
 				err = fmt.Errorf("%s, %w", errStr, retryer.ErrPermanent)
 				return err
 			}
 			ids = []string{""}
 			dec := json.NewDecoder(resp.Body)
 			err = dec.Decode(&ids)
-			if err != nil {
+			if err != nil && !errors.Is(err, io.EOF) {
 				errStr := fmt.Sprintf("error reading current aborted checks: %+v", err)
 				err = fmt.Errorf("%s, %w", errStr, retryer.ErrPermanent)
 				return err
 			}
-			return nil
+			return err
 		})
 	return ids, err
 }
