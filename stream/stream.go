@@ -3,7 +3,6 @@ package stream
 import (
 	"context"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -84,7 +83,7 @@ LOOP:
 		select {
 		case readRes := <-msgRead:
 			err = readRes.Error
-			if err != nil && !strings.Contains(err.Error(), "timeout") {
+			if err != nil {
 				s.l.Errorf("error reading message from the stream: %s", err)
 				conn, err = s.reconnect(ctx)
 				if err != nil {
@@ -93,9 +92,7 @@ LOOP:
 				msgRead = s.readMessage(conn)
 				continue
 			}
-			if err == nil {
-				s.processMessage(readRes.Message)
-			}
+			s.processMessage(readRes.Message)
 			msgRead = s.readMessage(conn)
 		case <-ctx.Done():
 			err = ctx.Err()
