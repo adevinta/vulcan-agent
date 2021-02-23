@@ -122,21 +122,31 @@ func (b *Docker) run(ctx context.Context, params backend.RunParams, res chan<- b
 		res <- backend.RunResult{Error: err}
 		return
 	}
-	_, err = b.cli.ContainerWait(ctx, contID)
+
+	var status int64
+	status, err = b.cli.ContainerWait(ctx, contID)
+	b.log.Debugf("container with ID %s finished with status %d", contID, status)
 	if err != nil && !errors.Is(err, context.Canceled) && !errors.Is(err, context.DeadlineExceeded) {
 		err := fmt.Errorf("error running container for check %s: %w", params.CheckID, err)
 		res <- backend.RunResult{Error: err}
 		return
 	}
+
+	if status != 0 && !errors.Is(err, context.Canceled) && !errors.Is(err, context.DeadlineExceeded) {
+		err = fmt.Errorf("container finished unexpectedly, status: %d", status)
+	}
+
 	if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
 		// ContainerStop will send a SIGTERM signal to the entrypoint. It will
 		// wait for the amount of seconds configured and then send a SIGKILL
 		// signal that will terminate the process. We use an empty context since
 		// the stop operation is called when the ctx of the check is already
-		// finish because a time out.
+		// finish  a time out.
+		b.log.Infof("check: %s timeout or aborted ensure container %s is stopped", params.CheckID, contID)
 		timeout := abortTimeout
 		b.cli.ContainerStop(context.Background(), contID, &timeout)
 	}
+
 	out, logErr := b.getContainerlogs(contID)
 	if logErr != nil {
 		b.log.Errorf("getting logs for the check %s, %+v", params.CheckID, err)
