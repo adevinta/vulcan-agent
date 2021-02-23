@@ -140,7 +140,6 @@ func (s *Stream) readMessage(conn *websocket.Conn) <-chan readMessageResult {
 func (s *Stream) processMessage(msg Message) {
 	switch msg.Action {
 	case "ping":
-		s.l.Debugf("ping received")
 	case "abort":
 		if msg.CheckID == "" {
 			s.l.Errorf("error, reading stream message abort without checkID")
