@@ -51,6 +51,7 @@ func NewMetrics(l log.Logger, cfg config.DatadogConfig, aborter Agent) *Metrics 
 		l.Infof("metrics disabled in agent: %s", agentID)
 		return &Metrics{Enabled: false}
 	}
+	l.Infof("metrics enabled in agent: %s", agentID)
 	// Parse DataDog config.
 	os.Setenv("DOGSTATSD_ENABLED", "true")
 	statsdAddr := strings.Split(cfg.Statsd, ":")
