@@ -63,12 +63,7 @@ func (b Retryer) WithRetries(op string, exec func() error) error {
 			b.log.Errorf("backoff finished at retry %d, unable to to finish operation %s, err %+v", retries, op, err)
 			return err
 		}
-		select {
-		case <-retry.Done():
-			b.log.Errorf("backoff finished at retry %d, unable to to finish operation %s, err %+v", retries, op, err)
-			return err
-		case <-retry.Next():
-			b.log.Errorf("retrying operation, retry: %d, operation  %s, err %+v", retries, op, err)
-		}
+		<-retry.Next()
+		b.log.Errorf("retrying operation, retry: %d, operation  %s, err %+v", retries, op, err)
 	}
 }
