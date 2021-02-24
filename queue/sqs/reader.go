@@ -146,7 +146,6 @@ func (r *Reader) readMessage(ctx context.Context) (*sqs.Message, error) {
 	waitTime := int64(0)
 	for {
 		r.receiveParams.WaitTimeSeconds = &waitTime
-		r.log.Debugf("reading messages from sqs with waittime %d seconds", waitTime)
 		resp, err := r.sqs.ReceiveMessageWithContext(ctx, &r.receiveParams)
 		if err != nil {
 			if errors.Is(err, context.Canceled) {
