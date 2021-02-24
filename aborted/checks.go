@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"net/url"
 	"sync"
@@ -85,16 +86,20 @@ func (c *Checks) get() ([]string, error) {
 			if err != nil {
 				return err
 			}
+			defer resp.Body.Close()
 			if resp.StatusCode != http.StatusOK {
-				errStr := fmt.Sprintf("error getting current aborted checks, unexpected status code: %d", resp.StatusCode)
+				errStr := fmt.Sprintf("getting current aborted checks, unexpected status code: %d", resp.StatusCode)
 				err = fmt.Errorf("%s, %w", errStr, retryer.ErrPermanent)
 				return err
 			}
 			ids = []string{""}
-			dec := json.NewDecoder(resp.Body)
-			err = dec.Decode(&ids)
+			content, err := ioutil.ReadAll(resp.Body)
+			if err != nil {
+				return err
+			}
+			err = json.Unmarshal(content, &ids)
 			if err != nil && !errors.Is(err, io.EOF) {
-				errStr := fmt.Sprintf("error reading current aborted checks: %+v", err)
+				errStr := fmt.Sprintf("unmarshalling current aborted checks: %+v, body: %s", err, string(content))
 				err = fmt.Errorf("%s, %w", errStr, retryer.ErrPermanent)
 				return err
 			}
