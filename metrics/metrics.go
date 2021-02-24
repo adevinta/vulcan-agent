@@ -43,15 +43,16 @@ type Metrics struct {
 // NewMetrics return a new struct which sends the defined metrics for the agent
 // to DD.
 func NewMetrics(l log.Logger, cfg config.DatadogConfig, aborter Agent) *Metrics {
-	if !cfg.Enabled {
-		return &Metrics{Enabled: false}
-	}
-	// Parse DataDog config.
-	os.Setenv("DOGSTATSD_ENABLED", "true")
 	agentID := os.Getenv("instanceID")
 	if agentID == "" {
 		agentID = "unknown"
 	}
+	if !cfg.Enabled {
+		l.Infof("metrics disabled in agent: %s", agentID)
+		return &Metrics{Enabled: false}
+	}
+	// Parse DataDog config.
+	os.Setenv("DOGSTATSD_ENABLED", "true")
 	statsdAddr := strings.Split(cfg.Statsd, ":")
 	if len(statsdAddr) == 2 {
 		os.Setenv("DOGSTATSD_HOST", statsdAddr[0])
