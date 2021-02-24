@@ -154,7 +154,7 @@ func MainWithExitCode(bc BackendCreator) int {
 
 	stopperDone := qStopper.Track(ctxqr)
 
-	metricsDone := metrics.StartPooling(ctxqr)
+	metricsDone := metrics.StartPolling(ctxqr)
 
 	l.Infof("agent running on address %s", srv.Addr)
 	sig := make(chan os.Signal, 1)
@@ -189,7 +189,7 @@ func MainWithExitCode(bc BackendCreator) int {
 		l.Errorf("error stopping agent %+v", err)
 	}
 
-	// Wait for the metrics to stop pooling.
+	// Wait for the metrics to stop polling.
 	<-metricsDone
 
 	// Stop listening for api calls.

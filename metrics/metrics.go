@@ -70,15 +70,15 @@ func NewMetrics(l log.Logger, cfg config.DatadogConfig, aborter Agent) *Metrics 
 	return pusher
 }
 
-// StartPooling pools every PoolIntervalSeconds the current number the agent is
+// StartPolling pools every PoolIntervalSeconds the current number the agent is
 // running and sends the metric to the Data Dog.
-func (p *Metrics) StartPooling(ctx context.Context) <-chan struct{} {
+func (p *Metrics) StartPolling(ctx context.Context) <-chan struct{} {
 	done := make(chan struct{})
-	go p.pool(ctx, done)
+	go p.poll(ctx, done)
 	return done
 }
 
-func (p *Metrics) pool(ctx context.Context, done chan<- struct{}) {
+func (p *Metrics) poll(ctx context.Context, done chan<- struct{}) {
 	defer func() {
 		done <- struct{}{}
 		close(done)
@@ -86,7 +86,7 @@ func (p *Metrics) pool(ctx context.Context, done chan<- struct{}) {
 	if !p.Enabled {
 		return
 	}
-	ticker := time.NewTicker(PoolTimeInterval * time.Second)
+	ticker := time.NewTicker(PoolTimeInterval)
 	defer ticker.Stop()
 LOOP:
 	for {
