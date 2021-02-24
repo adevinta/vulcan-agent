@@ -93,7 +93,6 @@ LOOP:
 		select {
 		case <-ticker.C:
 			n := p.Aborter.ChecksRunning()
-			p.Logger.Debugf("sending metric checks runing %d", n)
 			metric := metrics.Metric{
 				Name:  "vulcan.scan.check.running",
 				Typ:   metrics.Gauge,

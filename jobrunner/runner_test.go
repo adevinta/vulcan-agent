@@ -61,6 +61,19 @@ func (im *inMemChecksUpdater) UpdateCheckRaw(checkID string, stime time.Time, ra
 	return fmt.Sprintf("%s/logs", checkID), nil
 }
 
+type mockChecksUpdater struct {
+	stateUpdater    func(cs stateupdater.CheckState) error
+	checkRawUpdater func(checkID string, stime time.Time, raw []byte) (string, error)
+}
+
+func (m *mockChecksUpdater) UpdateState(cs stateupdater.CheckState) error {
+	return m.stateUpdater(cs)
+}
+
+func (m *mockChecksUpdater) UpdateCheckRaw(checkID string, stime time.Time, raw []byte) (string, error) {
+	return m.checkRawUpdater(checkID, stime, raw)
+}
+
 type mockBackend struct {
 	CheckRunner func(ctx context.Context, params backend.RunParams) (<-chan backend.RunResult, error)
 }
@@ -408,6 +421,55 @@ func TestRunner_ProcessMessage(t *testing.T) {
 				rawsDiff := cmp.Diff(wantRaws, gotRaws)
 				updateDiff := cmp.Diff(wantUpdates, gotUpdates)
 				return fmt.Sprintf("%s%s", rawsDiff, updateDiff)
+			},
+		},
+
+		{
+			name: "DontDeleteWhenErrorUpdatingStatus",
+			fields: fields{
+				Backend: &mockBackend{
+					CheckRunner: func(ctx context.Context, params backend.RunParams) (<-chan backend.RunResult, error) {
+						var res = make(chan backend.RunResult)
+						go func() {
+							output, err := json.Marshal(params)
+							if err != nil {
+								panic(err)
+							}
+							results := backend.RunResult{
+								Output: output,
+							}
+							res <- results
+						}()
+						return res, nil
+					},
+				},
+				cAborter: &checkAborter{
+					cancels: sync.Map{},
+				},
+				aborted: &inMemAbortedChecks{
+					aborted: map[string]struct{}{
+						runJobFixture1.CheckID: {},
+					},
+				},
+				defaultTimeout: time.Duration(10 * time.Second),
+				Tokens:         make(chan interface{}, 10),
+				Logger:         &log.NullLog{},
+				CheckUpdater: &mockChecksUpdater{
+					stateUpdater: func(cs stateupdater.CheckState) error {
+						return errUnexpectedTest
+					},
+					checkRawUpdater: func(checkID string, stime time.Time, raw []byte) (string, error) {
+						return "link", nil
+					},
+				},
+			},
+			args: args{
+				msg:   string(mustMarshal(runJobFixture1)),
+				token: token{},
+			},
+			want: false,
+			wantState: func(r *Runner) string {
+				return ""
 			},
 		},
 	}
