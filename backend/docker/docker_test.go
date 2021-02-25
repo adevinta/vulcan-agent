@@ -2,6 +2,7 @@ package docker
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -160,7 +161,54 @@ func TestIntegrationDockerRunKillContainer(t *testing.T) {
 	}
 }
 
-func TestIntegrationDockerRunCancelGracefully(t *testing.T) {
+func TestIntegrationDockerDetectUnexpectedExit(t *testing.T) {
+	envCli, err := client.NewEnvClient()
+	if err != nil {
+		panic(err)
+	}
+
+	cli := dockerutils.NewClient(envCli)
+	b := &Docker{
+		agentAddr: "an addr",
+		log:       &log.NullLog{},
+		cli:       cli,
+	}
+	err = buildDockerImage("testdata/DockerfileSleep", "vulcan-check")
+	if err != nil {
+		panic(err)
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	id := uuid.New()
+	params := backend.RunParams{
+		CheckID: id.String(),
+		Image:   "vulcan-check:latest",
+	}
+	gotChan, err := b.Run(ctx, params)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	// Find the container and kill it.
+	contID, err := waitForContainer(cli, id.String())
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	err = cli.ContainerKill(context.Background(), contID, "")
+	if err != nil {
+		t.Errorf("error killing container: %+v", err)
+		return
+	}
+	got := <-gotChan
+	gotErr := got.Error
+	if !errors.Is(gotErr, ErrConExitUnexpected) {
+		t.Errorf("wantError!=gotErr, %+v!=%+v", ErrConExitUnexpected, gotErr)
+		return
+	}
+}
+
+func TestIntegrationDockerRunAbortGracefully(t *testing.T) {
 	envCli, err := client.NewEnvClient()
 	if err != nil {
 		panic(err)
@@ -240,4 +288,26 @@ func removeContainer(name string) (err error) {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	return cmd.Run()
+}
+
+func waitForContainer(cli *dockerutils.Client, id string) (string, error) {
+	args := fmt.Sprintf("label=CheckID=%s", id)
+	filter, err := filters.ParseFlag(args, filters.NewArgs())
+	if err != nil {
+		err = fmt.Errorf("error listing running containers: %+v", err)
+		return "", err
+	}
+	var exit bool
+	for !exit {
+		containers, err := cli.ContainerList(context.Background(), types.ContainerListOptions{Filters: filter})
+		if err != nil {
+			err = fmt.Errorf("error listing running containers: %+v", err)
+			return "", err
+		}
+		if len(containers) < 1 {
+			continue
+		}
+		return containers[0].ID, nil
+	}
+	return "", errors.New("unexpected error waiting for container to be up")
 }

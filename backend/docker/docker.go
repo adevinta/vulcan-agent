@@ -26,6 +26,10 @@ const (
 	abortTimeout           = 5 * time.Second //seconds
 )
 
+// ErrConExitUnexpected is returned by the docker backend when a
+// container was killed externally while running.
+var ErrConExitUnexpected = errors.New("container finished unexpectedly")
+
 // Client defines the shape of the docker client component needed by the docker
 // backend in order to be able to run checks.
 type Client interface {
@@ -140,7 +144,7 @@ func (b *Docker) run(ctx context.Context, params backend.RunParams, res chan<- b
 	}
 
 	if status != 0 && !errors.Is(err, context.Canceled) && !errors.Is(err, context.DeadlineExceeded) {
-		err = fmt.Errorf("container finished unexpectedly, status: %d", status)
+		err = fmt.Errorf("%w status: %d", ErrConExitUnexpected, status)
 	}
 
 	if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
