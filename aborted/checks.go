@@ -80,7 +80,7 @@ func (c *Checks) get() ([]string, error) {
 		ids []string
 		err error
 	)
-	c.retryer.WithRetries("GetAbortedChecks",
+	err = c.retryer.WithRetries("GetAbortedChecks",
 		func() error {
 			resp, err := c.client.Get(c.addr)
 			if err != nil {
