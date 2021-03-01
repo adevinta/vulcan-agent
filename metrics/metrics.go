@@ -119,8 +119,8 @@ func (p *Metrics) AbortCheck(ID string) {
 		Value: 1,
 		Tags: []string{
 			"component:agent",
-			fmt.Sprint("action:", "abort"),
-			fmt.Sprint("agentid:", p.AgentID),
+			"action:abort",
+			fmt.Sprintf("agentid:%s", p.AgentID),
 		},
 	}
 	p.Client.Push(metrics)

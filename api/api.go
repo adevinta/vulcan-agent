@@ -38,7 +38,7 @@ type Stats struct {
 }
 
 // CheckStateUpdater defines the method needed by the API in order to send check
-// updates messages to que corresponding queue.
+// updates messages to the corresponding queue.
 type CheckStateUpdater interface {
 	UpdateState(stateupdater.CheckState) error
 	UpdateCheckReport(checkID string, startTime time.Time, report report.Report) (string, error)

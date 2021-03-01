@@ -1,0 +1,77 @@
+
+[agent]
+# debug level options: panic, fatal, error, warn, info, debug.
+log_level = "debug"
+log_file = "agent.log"
+concurrent_jobs = 5
+# Maximum number of seconds the agent will remain active without received any
+# message.
+max_no_msgs_interval = 0
+
+[uploader]
+endpoint = "http://vulcan-results.example.com/v1/"
+retries = 3
+retry_interval = 2
+timeout = 10
+
+[stream]
+endpoint = "ws://vulcan-stream.example.com/stream"
+query_endpoint = "http://vulcan-stream.example.com/checks"
+timeout = 10
+retries = 3
+# interval in seconds between connection retries.
+retry_interval = 2
+
+[sqs_reader]
+endpoint = ""
+arn = "arn:aws:sqs:region:account:checks"
+# in secondsorigin
+visibility_timeout = 60
+polling_interval = 10
+# The process quantum must always be at least a few seconds less than the
+# visibility timeout.
+process_quantum  = 45
+
+[sqs_writer]
+endpoint = ""
+arn = "arn:aws:sqs:region:account:checks-status"
+
+[api]
+port = ":8080"
+# The host parameter is only required when running on Mac.
+## Remove it to run it in linux.
+host = "host.docker.internal"
+
+[check]
+abort_timeout = 60
+log_level = "info"
+
+[check.vars]
+# Here you must define the vars that required for some checks.
+NESSUS_ENDPOINT = "https://example.com"
+NESSUS_USERNAME = "user@example.com"
+NESSUS_PASSWORD = "supersecret"
+NESSUS_POLICY_ID = "0"
+GITHUB_ENTERPRISE_ENDPOINT = "https://github.example.com/"
+GITHUB_ENTERPRISE_TOKEN = ""
+VULCAN_ASSUME_ROLE_ENDPOINT = "https://asume.example.com/"
+ROLE_NAME = "ARole"
+WPVULNDB_API_TOKEN = ""
+REGISTRY_DOMAIN = "registry.example.com"
+REGISTRY_USERNAME = "registry@example.com"
+REGISTRY_PASSWORD = "supersecret"
+
+[runtime]
+[runtime.docker]
+[runtime.docker.registry]
+server = "docker.example.com"
+user = "user"
+pass = "supersecret"
+backoff_interval = 5
+backoff_max_retries = 5
+backoff_jitter_factor = 0.5
+
+
+[datadog]
+metrics_enabled = false
+dogstatsd = "127.0.0.1:8125"
