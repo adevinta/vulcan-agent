@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
@@ -31,11 +30,6 @@ func main() {
 
 func mainWithExitCode() int {
 	log.Printf("running vulcan-agent-autoscaling to scale down an agent\n")
-	if len(os.Args) < 2 {
-		fmt.Fprintf(os.Stderr, "Usage: %v <config_file>\n", os.Args[0])
-		return 1
-	}
-
 	sess := session.Must(session.NewSession(&aws.Config{
 		Region: aws.String("eu-west-1"),
 	}))
