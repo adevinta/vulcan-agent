@@ -99,6 +99,7 @@ LOOP:
 				Value: float64(n),
 				Tags:  []string{componentTag, p.AgentID},
 			}
+			p.Logger.Debugf("sending metric to DD: %+v", metric)
 			p.Client.Push(metric)
 		case <-ctx.Done():
 			break LOOP
