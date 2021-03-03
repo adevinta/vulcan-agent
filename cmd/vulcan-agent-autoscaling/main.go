@@ -30,6 +30,7 @@ func main() {
 }
 
 func mainWithExitCode() int {
+	log.Printf("running vulcan-agent-autoscaling to scale down an agent\n")
 	if len(os.Args) < 2 {
 		fmt.Fprintf(os.Stderr, "Usage: %v <config_file>\n", os.Args[0])
 		return 1
@@ -69,7 +70,7 @@ func mainWithExitCode() int {
 
 	_, err = asgAPI.TerminateInstanceInAutoScalingGroup(input)
 	if err != nil {
-		log.Printf("error terminanting instance %s", id)
+		log.Printf("error terminanting instance %s, err %+v", id, err)
 		return 1
 	}
 	return 0
