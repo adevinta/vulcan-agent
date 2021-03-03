@@ -36,14 +36,8 @@ func mainWithExitCode() int {
 		return 1
 	}
 
-	config, err := readConfig(os.Args[1])
-	if err != nil {
-		log.Printf("configuration file can not be read: %v\n", err)
-		return 1
-	}
-
 	sess := session.Must(session.NewSession(&aws.Config{
-		Region: aws.String(config.AWSRegion),
+		Region: aws.String("eu-west-1"),
 	}))
 
 	// We are using a mock of the AWS autoscaling API when not
@@ -59,7 +53,9 @@ func mainWithExitCode() int {
 			log.Printf("error retrieving instance metadata: %v\n", err)
 			return 1
 		}
-
+		sess = session.Must(session.NewSession(&aws.Config{
+			Region: aws.String(doc.Region),
+		}))
 		id = doc.InstanceID
 		asgAPI = autoscaling.New(sess)
 	}
@@ -68,7 +64,7 @@ func mainWithExitCode() int {
 		ShouldDecrementDesiredCapacity: aws.Bool(true),
 	}
 
-	_, err = asgAPI.TerminateInstanceInAutoScalingGroup(input)
+	_, err := asgAPI.TerminateInstanceInAutoScalingGroup(input)
 	if err != nil {
 		log.Printf("error terminanting instance %s, err %+v", id, err)
 		return 1
