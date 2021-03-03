@@ -79,6 +79,7 @@ func (p *Metrics) StartPolling(ctx context.Context) <-chan struct{} {
 }
 
 func (p *Metrics) poll(ctx context.Context, done chan<- struct{}) {
+	agentIDTag := fmt.Sprintf("agentid:%s", p.AgentID)
 	defer func() {
 		done <- struct{}{}
 		close(done)
@@ -97,9 +98,8 @@ LOOP:
 				Name:  "vulcan.scan.check.running",
 				Typ:   metrics.Gauge,
 				Value: float64(n),
-				Tags:  []string{componentTag, p.AgentID},
+				Tags:  []string{componentTag, agentIDTag},
 			}
-			p.Logger.Debugf("sending metric to DD: %+v", metric)
 			p.Client.Push(metric)
 		case <-ctx.Done():
 			break LOOP
@@ -119,7 +119,7 @@ func (p *Metrics) AbortCheck(ID string) {
 		Typ:   metrics.Count,
 		Value: 1,
 		Tags: []string{
-			"component:agent",
+			componentTag,
 			"action:abort",
 			fmt.Sprintf("agentid:%s", p.AgentID),
 		},
