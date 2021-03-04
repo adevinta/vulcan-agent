@@ -5,7 +5,6 @@ import (
 	"net/http"
 
 	"github.com/gorilla/websocket"
-	"github.com/lestrrat-go/backoff"
 
 	"github.com/adevinta/vulcan-agent/log"
 )
@@ -39,27 +38,4 @@ func (ws *WSDialerWithRetries) Dial(ctx context.Context, urlStr string, requestH
 		return err
 	})
 	return conn, resp, err
-}
-
-func withBackoff(p backoff.Policy, l log.Logger, exec func() error) error {
-	var err error
-	retry, cancel := p.Start(context.Background())
-	defer cancel()
-	n := 0
-	for {
-		err = exec()
-		if err == nil {
-			return nil
-		}
-		select {
-		case <-retry.Done():
-			l.Errorf("websocket connect backoff finished unable to perform operation, retry_number: %d", n)
-			return err
-		case <-retry.Next():
-			n++
-			if n > 1 {
-				l.Infof("websocker connect backoff fired. Retrying, retry number: %d", n)
-			}
-		}
-	}
 }

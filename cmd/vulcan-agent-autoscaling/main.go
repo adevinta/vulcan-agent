@@ -1,25 +1,15 @@
 package main
 
 import (
-	"io/ioutil"
 	"log"
 	"os"
 
-	"github.com/BurntSushi/toml"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/ec2metadata"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/autoscaling"
 	"github.com/aws/aws-sdk-go/service/autoscaling/autoscalingiface"
 )
-
-const (
-	ddTag = "vulcan:autoscaling"
-)
-
-type Config struct {
-	AWSRegion string `toml:"region"`
-}
 
 func main() {
 	// while still executing deferred functions as expected.
@@ -64,18 +54,4 @@ func mainWithExitCode() int {
 		return 1
 	}
 	return 0
-}
-
-func readConfig(configFile string) (Config, error) {
-	configData, err := ioutil.ReadFile(configFile)
-	if err != nil {
-		return Config{}, err
-	}
-
-	var config Config
-	if _, err := toml.Decode(string(configData), &config); err != nil {
-		return Config{}, err
-	}
-
-	return config, nil
 }

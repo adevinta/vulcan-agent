@@ -16,9 +16,7 @@ import (
 // Writer writes messages to and AWS SQS queue.
 type Writer struct {
 	*sync.RWMutex
-	disabled bool
 	sqs      sqsiface.SQSAPI
-	logger   log.Logger
 	queueURL string
 }
 

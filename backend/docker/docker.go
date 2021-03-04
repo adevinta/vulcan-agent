@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"net"
 	"time"
 
 	"github.com/adevinta/dockerutils"
@@ -227,42 +226,6 @@ func dockerVars(requiredVars []string, envVars map[string]string) []string {
 		dockerVars = append(dockerVars, fmt.Sprintf("%s=%s", requiredVar, envVars[requiredVar]))
 	}
 	return dockerVars
-}
-
-// getAgentAddr returns the current address of the agent API from the Docker
-// network. It will also return any errors encountered while doing so.
-func getAgentAddr(port, ifaceName string) (string, error) {
-	connAddr, err := net.ResolveTCPAddr("tcp", port)
-	if err != nil {
-		return "", err
-	}
-	if ifaceName == "" {
-		ifaceName = defaultDockerIfaceName
-	}
-	iface, err := net.InterfaceByName(ifaceName)
-	if err != nil {
-		return "", err
-	}
-
-	addrs, err := iface.Addrs()
-	if err != nil {
-		return "", err
-	}
-
-	for _, addr := range addrs {
-		ip, _, err := net.ParseCIDR(addr.String())
-		if err != nil {
-			return "", err
-		}
-
-		// Check if it is IPv4.
-		if ip.To4() != nil {
-			connAddr.IP = ip
-			return connAddr.String(), nil
-		}
-	}
-
-	return "", errors.New("failed to determine Docker agent IP address")
 }
 
 func readContainerLogs(r io.ReadCloser) ([]byte, error) {

@@ -28,7 +28,6 @@ type Checks struct {
 	client   http.Client
 	canceled map[string]struct{}
 	retryer  Retryer
-	l        log.Logger
 }
 
 // New return a new Checks structure that can be used to test if a concrete
