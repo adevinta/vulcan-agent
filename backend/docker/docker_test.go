@@ -22,6 +22,9 @@ import (
 )
 
 func TestIntegrationDockerRun(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping test in short mode")
+	}
 	type args struct {
 		ctx    context.Context
 		params backend.RunParams
@@ -107,6 +110,9 @@ func TestIntegrationDockerRun(t *testing.T) {
 }
 
 func TestIntegrationDockerRunKillContainer(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping test in short mode")
+	}
 	envCli, err := client.NewEnvClient()
 	if err != nil {
 		panic(err)
@@ -162,6 +168,9 @@ func TestIntegrationDockerRunKillContainer(t *testing.T) {
 }
 
 func TestIntegrationDockerDetectUnexpectedExit(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping test in short mode")
+	}
 	envCli, err := client.NewEnvClient()
 	if err != nil {
 		panic(err)
@@ -209,6 +218,9 @@ func TestIntegrationDockerDetectUnexpectedExit(t *testing.T) {
 }
 
 func TestIntegrationDockerRunAbortGracefully(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping test in short mode")
+	}
 	envCli, err := client.NewEnvClient()
 	if err != nil {
 		panic(err)
