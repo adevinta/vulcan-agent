@@ -122,6 +122,11 @@ func MainWithExitCode(bc BackendCreator) int {
 	}
 
 	qr, err := sqs.NewReader(l, cfg.SQSReader, jrunner)
+	if err != nil {
+		l.Errorf("error starting SQSReader: %+v", err)
+		cancelStream()
+		return 1
+	}
 	stats := struct {
 		*jobrunner.Runner
 		*sqs.Reader
