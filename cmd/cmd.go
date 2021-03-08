@@ -111,20 +111,27 @@ func MainWithExitCode(bc BackendCreator) int {
 	// Setup metrics.
 	metrics := metrics.NewMetrics(l, cfg.DataDog, jrunner)
 
+	ctxqr, cancelqr := context.WithCancel(context.Background())
+
 	endpoint = cfg.Stream.Endpoint
 	stream := stream.New(l, metrics, re, endpoint)
-	sCtx, cancelStream := context.WithCancel(context.Background())
-	streamDone, err := stream.ListenAndProcess(sCtx)
+	streamDone, err := stream.ListenAndProcess(ctxqr)
 	if err != nil {
 		l.Errorf("error starting stream: %+v", err)
-		cancelStream()
+		cancelqr()
 		return 1
 	}
 
-	qr, err := sqs.NewReader(l, cfg.SQSReader, jrunner)
+	var maxTimeNoMsg *time.Duration
+	if cfg.Agent.MaxNoMsgsInterval > 0 {
+		t := time.Duration(cfg.Agent.MaxNoMsgsInterval) * time.Second
+		maxTimeNoMsg = &t
+	}
+
+	qr, err := sqs.NewReader(l, cfg.SQSReader, maxTimeNoMsg, jrunner)
 	if err != nil {
 		l.Errorf("error starting SQSReader: %+v", err)
-		cancelStream()
+		cancelqr()
 		return 1
 	}
 	stats := struct {
@@ -148,17 +155,7 @@ func MainWithExitCode(bc BackendCreator) int {
 		close(httpDone)
 	}()
 
-	ctxqr, cancelqr := context.WithCancel(context.Background())
 	qrdone := qr.StartReading(ctxqr)
-
-	maxTimeNoMsg := time.Duration(cfg.Agent.MaxNoMsgsInterval) * time.Second
-	qStopper := queue.ReaderStopper{
-		R:       qr,
-		MaxTime: maxTimeNoMsg,
-	}
-
-	stopperDone := qStopper.Track(ctxqr)
-
 	metricsDone := metrics.StartPolling(ctxqr)
 
 	l.Infof("agent running on address %s", srv.Addr)
@@ -168,30 +165,22 @@ func MainWithExitCode(bc BackendCreator) int {
 	select {
 	case <-sig:
 		// Signal the sqs queue reader to stop reading messages from the queue.
-		l.Infof("SIG received, stoping sqs queue reader")
-		cancelqr()
-	case err = <-stopperDone:
-		msg := "shutting down agent because more than %+d seconds elapsed without messages read"
-		l.Infof(msg, maxTimeNoMsg.Seconds())
+		l.Infof("SIG received, stoping agent")
 		cancelqr()
 	case err = <-httpDone:
-		l.Errorf("error running agent http api %+v", err)
+		l.Errorf("error running the the agent api %+v", err)
+		cancelqr()
+	case err = <-qrdone:
 		cancelqr()
 	}
 
-	l.Infof("wating for the checks to finish before stoping the agent")
-
-	// Wait for the queue stopper to finish.
-	err = <-stopperDone
-	if err != nil && !errors.Is(err, context.Canceled) {
-		cancelStream()
-		l.Errorf("error stopping the reader tracker %+v", err)
-	}
 	// Wait for all the pending jobs to finish.
-	err = <-qrdone
-	if err != nil && !errors.Is(err, context.Canceled) {
-		cancelStream()
-		l.Errorf("error stopping agent %+v", err)
+	if !errors.Is(err, queue.ErrMaxTimeNoRead) {
+		l.Infof("waiting for the checks to finish before stoping the agent")
+		err = <-qrdone
+		if err != nil && !errors.Is(err, context.Canceled) {
+			l.Errorf("error waiting for the checks to finish %+v", err)
+		}
 	}
 
 	// Wait for the metrics to stop polling.
@@ -200,18 +189,14 @@ func MainWithExitCode(bc BackendCreator) int {
 	// Stop listening for api calls.
 	err = srv.Shutdown(context.Background())
 	if err != nil {
-		cancelStream()
 		l.Errorf("error stoping http server: %+v", err)
 		return 1
 	}
 	err = <-httpDone
 	if err != nil && !errors.Is(err, http.ErrServerClosed) {
-		cancelStream()
 		l.Errorf("http server stopped with error: %+v", err)
 		return 1
 	}
-	// Stop the stream.
-	cancelStream()
 	// Wait for the stream to finish.
 	err = <-streamDone
 	if err != nil && !errors.Is(err, context.Canceled) {

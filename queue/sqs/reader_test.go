@@ -122,9 +122,10 @@ func TestReader_StartReading(t *testing.T) {
 		poolingInterval       int
 		receiveParams         sqs.ReceiveMessageInput
 		wg                    *sync.WaitGroup
-		lastMessageReceived   time.Time
+		lastMessageReceived   *time.Time
 		log                   log.Logger
 		Processor             queue.MessageProcessor
+		maxTimeNoRead         *time.Duration
 	}
 
 	tests := []struct {
@@ -355,6 +356,37 @@ func TestReader_StartReading(t *testing.T) {
 				return diff
 			},
 		},
+		{
+			name: "ExistsWhenNoMessagesTimeExceed",
+			fields: fields{
+				RWMutex: &sync.RWMutex{},
+				sqs: &InMemSQS{
+					Mutex: &sync.Mutex{},
+					Msgs:  []sqs.ReceiveMessageOutput{},
+				},
+				visibilityTimeout:     60,
+				processMessageQuantum: 2,
+				poolingInterval:       1,
+				receiveParams:         sqs.ReceiveMessageInput{},
+				log:                   &log.NullLog{},
+				wg:                    &sync.WaitGroup{},
+				Processor: &messageProcessorMock{
+					freeTokens: func() chan interface{} {
+						res := make(chan interface{}, 10)
+						res <- struct{}{}
+						return res
+					},
+				},
+				maxTimeNoRead: durationToPtr(time.Duration(2) * time.Second),
+			},
+			runCtxProvider: func() context.Context {
+				return context.Background()
+			},
+			want: queue.ErrMaxTimeNoRead,
+			stateChecker: func(r *Reader) string {
+				return ""
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -369,6 +401,7 @@ func TestReader_StartReading(t *testing.T) {
 				lastMessageReceived:   tt.fields.lastMessageReceived,
 				log:                   tt.fields.log,
 				Processor:             tt.fields.Processor,
+				maxTimeNoRead:         tt.fields.maxTimeNoRead,
 			}
 			ctx := tt.runCtxProvider()
 			finished := r.StartReading(ctx)
@@ -390,4 +423,8 @@ func strToPtr(input string) *string {
 
 func intToPtr(in int64) *int64 {
 	return &in
+}
+
+func durationToPtr(t time.Duration) *time.Duration {
+	return &t
 }

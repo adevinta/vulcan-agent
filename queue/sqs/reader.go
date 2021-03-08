@@ -32,13 +32,14 @@ type Reader struct {
 	poolingInterval       int
 	receiveParams         sqs.ReceiveMessageInput
 	wg                    *sync.WaitGroup
-	lastMessageReceived   time.Time
+	lastMessageReceived   *time.Time
 	log                   log.Logger
+	maxTimeNoRead         *time.Duration
 	Processor             queue.MessageProcessor
 }
 
 // NewReader creates a new Reader with the given processor, queueARN and config.
-func NewReader(log log.Logger, cfg config.SQSReader, processor queue.MessageProcessor) (*Reader, error) {
+func NewReader(log log.Logger, cfg config.SQSReader, maxTimeNoRead *time.Duration, processor queue.MessageProcessor) (*Reader, error) {
 	delta := cfg.VisibilityTimeout - cfg.ProcessQuantum
 	if delta < MaxQuantumDelta {
 		err := errors.New("difference between visibility timeout and quantum is too short")
@@ -92,7 +93,8 @@ func NewReader(log log.Logger, cfg config.SQSReader, processor queue.MessageProc
 		wg:                    &sync.WaitGroup{},
 		receiveParams:         receiveParams,
 		sqs:                   srv,
-		lastMessageReceived:   time.Now(),
+		maxTimeNoRead:         maxTimeNoRead,
+		lastMessageReceived:   nil,
 	}, nil
 
 }
@@ -110,6 +112,7 @@ func (r *Reader) StartReading(ctx context.Context) <-chan error {
 		err := <-done
 		r.wg.Wait()
 		finished <- err
+		close(finished)
 	}()
 	return finished
 }
@@ -127,7 +130,8 @@ loop:
 			break loop
 		case token := <-r.Processor.FreeTokens():
 			msg, err = r.readMessage(ctx)
-			if err == context.Canceled {
+			if err == queue.ErrMaxTimeNoRead {
+				r.log.Infof("reader stopped because max time without reading messages elapsed")
 				break loop
 			}
 			if err != nil {
@@ -144,6 +148,7 @@ loop:
 func (r *Reader) readMessage(ctx context.Context) (*sqs.Message, error) {
 	var msg *sqs.Message
 	waitTime := int64(0)
+	start := time.Now()
 	for {
 		r.receiveParams.WaitTimeSeconds = &waitTime
 		resp, err := r.sqs.ReceiveMessageWithContext(ctx, &r.receiveParams)
@@ -161,13 +166,22 @@ func (r *Reader) readMessage(ctx context.Context) (*sqs.Message, error) {
 			msg = resp.Messages[0]
 			break
 		}
+		// Check if we need to stop the reader because more than expected time has passed.
+		now := time.Now()
+		if r.maxTimeNoRead != nil && now.Sub(start) > *r.maxTimeNoRead {
+			return nil, queue.ErrMaxTimeNoRead
+		}
 		waitTime = int64(r.poolingInterval)
 	}
-	r.Lock()
-	defer r.Unlock()
 	now := time.Now()
-	r.lastMessageReceived = now
+	r.setLastMessageReceived(&now)
 	return msg, nil
+}
+
+func (r *Reader) setLastMessageReceived(t *time.Time) {
+	r.Lock()
+	r.lastMessageReceived = t
+	r.Unlock()
 }
 
 func (r *Reader) processAndTrack(msg *sqs.Message, token interface{}) {
@@ -180,7 +194,7 @@ func (r *Reader) processAndTrack(msg *sqs.Message, token interface{}) {
 			QueueUrl:      r.receiveParams.QueueUrl,
 		})
 		if err != nil {
-			r.log.Errorf("ErrorDeletingProcessedMessage", err.Error())
+			r.log.Errorf("deleting processed message", err.Error())
 		}
 	}
 	r.log.Debugf("processing message with id: %s", *msg.MessageId)
@@ -230,7 +244,7 @@ loop:
 
 // LastMessageReceived returns the time where the last message was received by
 // the Reader. If no message was received so far it returns nil.
-func (r *Reader) LastMessageReceived() time.Time {
+func (r *Reader) LastMessageReceived() *time.Time {
 	r.RLock()
 	defer r.RUnlock()
 	return r.lastMessageReceived

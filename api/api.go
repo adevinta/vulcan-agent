@@ -48,7 +48,7 @@ type CheckStateUpdater interface {
 // about agent stats that it exposed to the outside world.
 type AgentStats interface {
 	ChecksRunning() int
-	LastMessageReceived() time.Time
+	LastMessageReceived() *time.Time
 }
 
 // API defines the methods of the API that the agent exposes to the outside.
@@ -112,5 +112,5 @@ func (a *API) CheckUpdate(c CheckState) error {
 func (a *API) Stats() (Stats, error) {
 	last := a.agentStats.LastMessageReceived()
 	n := a.agentStats.ChecksRunning()
-	return Stats{LastMessageReceived: &last, ChecksRunning: n}, nil
+	return Stats{LastMessageReceived: last, ChecksRunning: n}, nil
 }
