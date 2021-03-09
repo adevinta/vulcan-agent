@@ -13,7 +13,7 @@ import (
 var (
 	// ReadTimeout specifies the time, in seconds, the streams wait for reading
 	// the next message.
-	ReadTimeout = 15
+	ReadTimeout = 5
 )
 
 type readMessageResult struct {

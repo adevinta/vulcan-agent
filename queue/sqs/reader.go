@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -36,6 +37,7 @@ type Reader struct {
 	log                   log.Logger
 	maxTimeNoRead         *time.Duration
 	Processor             queue.MessageProcessor
+	nProcessingMessages   uint32
 }
 
 // NewReader creates a new Reader with the given processor, queueARN and config.
@@ -95,6 +97,7 @@ func NewReader(log log.Logger, cfg config.SQSReader, maxTimeNoRead *time.Duratio
 		sqs:                   srv,
 		maxTimeNoRead:         maxTimeNoRead,
 		lastMessageReceived:   nil,
+		nProcessingMessages:   0,
 	}, nil
 
 }
@@ -138,6 +141,7 @@ loop:
 				break loop
 			}
 			r.wg.Add(1)
+			atomic.AddUint32(&r.nProcessingMessages, 1)
 			go r.processAndTrack(msg, token)
 		}
 	}
@@ -162,13 +166,14 @@ func (r *Reader) readMessage(ctx context.Context) (*sqs.Message, error) {
 			return nil, err
 		}
 		if len(resp.Messages) > 0 {
-			r.log.Debugf("read message with id %+v from the sqs queue", *resp.Messages[0].MessageId)
 			msg = resp.Messages[0]
 			break
 		}
-		// Check if we need to stop the reader because more than expected time has passed.
+		// Check if we need to stop the reader because more than expected time has passed
+		// and no more checks are running.
 		now := time.Now()
-		if r.maxTimeNoRead != nil && now.Sub(start) > *r.maxTimeNoRead {
+		n := atomic.LoadUint32(&r.nProcessingMessages)
+		if r.maxTimeNoRead != nil && now.Sub(start) > *r.maxTimeNoRead && n == 0 {
 			return nil, queue.ErrMaxTimeNoRead
 		}
 		waitTime = int64(r.poolingInterval)
@@ -185,7 +190,12 @@ func (r *Reader) setLastMessageReceived(t *time.Time) {
 }
 
 func (r *Reader) processAndTrack(msg *sqs.Message, token interface{}) {
-	defer r.wg.Done()
+	defer func() {
+		// Decrement the number of messages being processed, see:
+		// https://golang.org/src/sync/atomic/doc.go?s=3841:3896#L87
+		atomic.AddUint32(&r.nProcessingMessages, ^uint32(0))
+		r.wg.Done()
+	}()
 	if msg.Body == nil {
 		r.log.Errorf("unexpected empty body message from sqs")
 		// Invalid message delete from queue without processing.
@@ -197,7 +207,6 @@ func (r *Reader) processAndTrack(msg *sqs.Message, token interface{}) {
 			r.log.Errorf("deleting processed message", err.Error())
 		}
 	}
-	r.log.Debugf("processing message with id: %s", *msg.MessageId)
 	processed := r.Processor.ProcessMessage(*msg.Body, token)
 	timer := time.NewTimer(time.Duration(r.processMessageQuantum) * time.Second)
 loop:
@@ -205,7 +214,6 @@ loop:
 		select {
 		case <-timer.C:
 			extime := int64(r.visibilityTimeout)
-			r.log.Debugf("process quatum for message with id: %s elapsed.", *msg.MessageId)
 			input := &sqs.ChangeMessageVisibilityInput{
 				QueueUrl:          r.receiveParams.QueueUrl,
 				ReceiptHandle:     msg.ReceiptHandle,
@@ -216,13 +224,11 @@ loop:
 				r.log.Errorf("extending message visibility time for message with id: %s, error: %+v", *msg.MessageId, err)
 				break loop
 			}
-			r.log.Debugf("message with id: %s visibility extended.", *msg.MessageId)
 			timer.Reset(time.Duration(r.processMessageQuantum) * time.Second)
 		case delete := <-processed:
-			r.log.Debugf("message with id: %s processed", *msg.MessageId)
 			timer.Stop()
 			if !delete {
-				r.log.Debugf("unexpected error processing message with id: %s, message not deleted", *msg.MessageId)
+				r.log.Errorf("unexpected error processing message with id: %s, message not deleted", *msg.MessageId)
 				break loop
 			}
 
@@ -230,13 +236,11 @@ loop:
 				QueueUrl:      r.receiveParams.QueueUrl,
 				ReceiptHandle: msg.ReceiptHandle,
 			}
-			r.log.Debugf("deleting message with id: %s", *msg.MessageId)
 			_, err := r.sqs.DeleteMessage(input)
 			if err != nil {
 				r.log.Errorf("deleting message with id: %s, error: %+v", *msg.MessageId, err)
 				break loop
 			}
-			r.log.Debugf("message with id: %s deleted", *msg.MessageId)
 			break loop
 		}
 	}
