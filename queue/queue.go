@@ -7,9 +7,10 @@ import (
 )
 
 var (
-	// ErrMaxTimeNoRead is returned by a reader when more than the specified
-	// amount of seconds has passed without getting a message from the queue.
-	ErrMaxTimeNoRead = errors.New("maximun allowed for reading a message exceeded")
+	// ErrMaxTimeNoRead is returned by a queue reader when there were no
+	// messages available in the queue for more than the configured amount of
+	// time.
+	ErrMaxTimeNoRead = errors.New("no messages available in the queue for more than the max time")
 )
 
 // MessageProcessor defines the methods needed by a queue reader implementation
