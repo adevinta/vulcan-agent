@@ -20,10 +20,7 @@ import (
 	"github.com/adevinta/vulcan-agent/log"
 )
 
-const (
-	defaultDockerIfaceName = "docker0"
-	abortTimeout           = 5 * time.Second //seconds
-)
+const abortTimeout = 5 * time.Second
 
 // ErrConExitUnexpected is returned by the docker backend when a
 // container was killed externally while running.
