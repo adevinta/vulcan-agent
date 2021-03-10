@@ -2,6 +2,7 @@ package stream
 
 import (
 	"context"
+	"net"
 	"net/http"
 	"time"
 
@@ -84,7 +85,9 @@ LOOP:
 		case readRes := <-msgRead:
 			err = readRes.Error
 			if err != nil {
-				s.l.Errorf("error reading message from the stream: %s", err)
+				if !errIsTimeout(err) {
+					s.l.Errorf("error reading message from the stream: %s", err)
+				}
 				conn, err = s.reconnect(ctx)
 				if err != nil {
 					break LOOP
@@ -149,4 +152,11 @@ func (s *Stream) processMessage(msg Message) {
 	default:
 		s.l.Errorf("error unknown message received: %+v", msg)
 	}
+}
+
+func errIsTimeout(err error) bool {
+	if err, ok := err.(net.Error); ok && err.Timeout() {
+		return true
+	}
+	return false
 }
