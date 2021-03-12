@@ -3,6 +3,7 @@ package sqs
 import (
 	"context"
 	"errors"
+	"fmt"
 	"sync"
 	"testing"
 	"time"
@@ -98,6 +99,7 @@ func (sq *InMemSQS) DeleteMessage(input *sqs.DeleteMessageInput) (*sqs.DeleteMes
 type messageProcessorMock struct {
 	tokens         chan interface{}
 	freeTokens     func() chan interface{}
+	Messages       []queue.Message
 	processMessage func(m queue.Message, token interface{}) <-chan bool
 }
 
@@ -109,6 +111,7 @@ func (mp *messageProcessorMock) FreeTokens() chan interface{} {
 }
 
 func (mp *messageProcessorMock) ProcessMessage(m queue.Message, token interface{}) <-chan bool {
+	mp.Messages = append(mp.Messages, m)
 	return mp.processMessage(m, token)
 }
 
@@ -148,6 +151,7 @@ func TestReader_StartReading(t *testing.T) {
 									Body:          strToPtr("msg1"),
 									MessageId:     strToPtr("msg1"),
 									ReceiptHandle: strToPtr("msg1"),
+									Attributes:    map[string]*string{"ApproximateReceiveCount": strToPtr("1")},
 								},
 							},
 						},
@@ -197,7 +201,19 @@ func TestReader_StartReading(t *testing.T) {
 						},
 					},
 				}
-				diff := cmp.Diff(wantSqs, *gotSqs, cmpopts.IgnoreFields(InMemSQS{}, "Mutex"))
+				diffSqs := cmp.Diff(wantSqs, *gotSqs, cmpopts.IgnoreFields(InMemSQS{}, "Mutex"))
+				gotMsgs := r.Processor.(*messageProcessorMock).Messages
+				wantMsgs := []queue.Message{
+					{Body: "msg1", TimesRead: 1},
+				}
+				diffMsgs := cmp.Diff(wantMsgs, *&gotMsgs)
+				diff := ""
+				if diffSqs != "" {
+					diff = fmt.Sprintf("SqsDiffs:%s\n", diffSqs)
+				}
+				if diffMsgs != "" {
+					diff = fmt.Sprintf("MsgsDiffs:%s", diffMsgs)
+				}
 				return diff
 			},
 		},

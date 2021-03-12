@@ -30,6 +30,16 @@ var (
 		Options:      "{}",
 		RequiredVars: []string{"var1"},
 	}
+	runJobFixedFixtureFixedCheckID = Job{
+		CheckID:      "428b4e49-c264-4c71-b5c4-fe08e8e6cfc7",
+		StartTime:    time.Now(),
+		Image:        "job1:latest",
+		Target:       "example.com",
+		Timeout:      60,
+		AssetType:    "hostname",
+		Options:      "{}",
+		RequiredVars: []string{"var1"},
+	}
 )
 
 type CheckRaw struct {
@@ -100,13 +110,14 @@ func (ia *inMemAbortedChecks) IsAborted(ID string) (bool, error) {
 
 func TestRunner_ProcessMessage(t *testing.T) {
 	type fields struct {
-		Backend        backend.Backend
-		Tokens         chan interface{}
-		Logger         log.Logger
-		CheckUpdater   CheckStateUpdater
-		cAborter       *checkAborter
-		aborted        AbortedChecks
-		defaultTimeout time.Duration
+		Backend                  backend.Backend
+		Tokens                   chan interface{}
+		Logger                   log.Logger
+		CheckUpdater             CheckStateUpdater
+		cAborter                 *checkAborter
+		aborted                  AbortedChecks
+		defaultTimeout           time.Duration
+		maxMessageProcessedTimes int
 	}
 	type args struct {
 		msg   queue.Message
@@ -485,17 +496,132 @@ func TestRunner_ProcessMessage(t *testing.T) {
 				return ""
 			},
 		},
+
+		{
+			name: "UpdatesLogsWhenUnexpectedError",
+			fields: fields{
+				Backend: &mockBackend{
+					CheckRunner: func(ctx context.Context, params backend.RunParams) (<-chan backend.RunResult, error) {
+						var res = make(chan backend.RunResult)
+						go func() {
+							results := backend.RunResult{
+								Output: []byte("logs"),
+								Error:  errors.New("unexpected error"),
+							}
+							res <- results
+						}()
+						return res, nil
+					},
+				},
+				cAborter: &checkAborter{
+					cancels: sync.Map{},
+				},
+				aborted: &inMemAbortedChecks{
+					aborted: map[string]struct{}{},
+				},
+				defaultTimeout:           time.Duration(10 * time.Second),
+				Tokens:                   make(chan interface{}, 10),
+				Logger:                   &log.NullLog{},
+				CheckUpdater:             &inMemChecksUpdater{},
+				maxMessageProcessedTimes: 1,
+			},
+			args: args{
+				msg: queue.Message{
+					Body: string(mustMarshal(runJobFixture1)),
+				},
+				token: token{},
+			},
+			want: false,
+			wantState: func(r *Runner) string {
+				updater := r.CheckUpdater.(*inMemChecksUpdater)
+				gotRaws := updater.raws
+				wantRaws := []CheckRaw{{
+					Raw:       []byte("logs"),
+					CheckID:   runJobFixture1.CheckID,
+					StartTime: runJobFixture1.StartTime,
+				}}
+				gotUpdates := updater.updates
+				rawLink := fmt.Sprintf("%s/logs", runJobFixture1.CheckID)
+				wantUpdates := []stateupdater.CheckState{
+					{
+						ID:  runJobFixture1.CheckID,
+						Raw: &rawLink,
+					},
+				}
+				rawsDiff := cmp.Diff(wantRaws, gotRaws)
+				updateDiff := cmp.Diff(wantUpdates, gotUpdates)
+				return fmt.Sprintf("%s%s", rawsDiff, updateDiff)
+			},
+		},
+		{
+			name: "DoesNotRunChecksProcessedTooManyTimes",
+			fields: fields{
+				Backend: &mockBackend{
+					CheckRunner: func(ctx context.Context, params backend.RunParams) (<-chan backend.RunResult, error) {
+						var res = make(chan backend.RunResult)
+						go func() {
+							output, err := json.Marshal(params)
+							if err != nil {
+								panic(err)
+							}
+							results := backend.RunResult{
+								Output: output,
+								Error:  context.Canceled,
+							}
+							res <- results
+						}()
+						return res, nil
+					},
+				},
+				cAborter: &checkAborter{
+					cancels: sync.Map{},
+				},
+				aborted: &inMemAbortedChecks{
+					aborted: map[string]struct{}{},
+				},
+				defaultTimeout:           time.Duration(10 * time.Second),
+				maxMessageProcessedTimes: 1,
+				Tokens:                   make(chan interface{}, 10),
+				Logger:                   &log.NullLog{},
+				CheckUpdater:             &inMemChecksUpdater{},
+			},
+			args: args{
+				msg: queue.Message{
+					Body:      string(mustMarshal(runJobFixture1)),
+					TimesRead: 2,
+				},
+				token: token{},
+			},
+			want: true,
+			wantState: func(r *Runner) string {
+				updater := r.CheckUpdater.(*inMemChecksUpdater)
+				gotRaws := updater.raws
+				var wantRaws []CheckRaw
+				gotUpdates := updater.updates
+				state := stateupdater.StatusFailed
+				wantUpdates := []stateupdater.CheckState{
+					{
+						ID:     runJobFixture1.CheckID,
+						Status: &state,
+					},
+				}
+				rawsDiff := cmp.Diff(wantRaws, gotRaws)
+				updateDiff := cmp.Diff(wantUpdates, gotUpdates)
+				return fmt.Sprintf("%s%s", rawsDiff, updateDiff)
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			cr := &Runner{
-				Backend:        tt.fields.Backend,
-				Tokens:         tt.fields.Tokens,
-				Logger:         tt.fields.Logger,
-				CheckUpdater:   tt.fields.CheckUpdater,
-				abortedChecks:  tt.fields.aborted,
-				cAborter:       tt.fields.cAborter,
-				defaultTimeout: tt.fields.defaultTimeout,
+				Backend:                  tt.fields.Backend,
+				Tokens:                   tt.fields.Tokens,
+				Logger:                   tt.fields.Logger,
+				CheckUpdater:             tt.fields.CheckUpdater,
+				abortedChecks:            tt.fields.aborted,
+				cAborter:                 tt.fields.cAborter,
+				defaultTimeout:           tt.fields.defaultTimeout,
+				maxMessageProcessedTimes: tt.fields.maxMessageProcessedTimes,
 			}
 			gotChan := cr.ProcessMessage(tt.args.msg, tt.args.token)
 			got := <-gotChan
