@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strconv"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -207,7 +208,19 @@ func (r *Reader) processAndTrack(msg *sqs.Message, token interface{}) {
 			r.log.Errorf("deleting processed message", err.Error())
 		}
 	}
-	processed := r.Processor.ProcessMessage(*msg.Body, token)
+	m := queue.Message{Body: *msg.Body}
+	var (
+		n   int
+		err error
+	)
+	if rc, ok := msg.Attributes["ApproximateReceiveCount"]; ok && rc != nil {
+		n, err = strconv.Atoi(*rc)
+		if err != nil {
+			r.log.Errorf("error reading ApproximateReceiveCount msg attribute %v", err)
+		}
+	}
+	m.TimesRead = n
+	processed := r.Processor.ProcessMessage(m, token)
 	timer := time.NewTimer(time.Duration(r.processMessageQuantum) * time.Second)
 loop:
 	for {

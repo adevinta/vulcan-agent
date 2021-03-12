@@ -98,7 +98,7 @@ func (sq *InMemSQS) DeleteMessage(input *sqs.DeleteMessageInput) (*sqs.DeleteMes
 type messageProcessorMock struct {
 	tokens         chan interface{}
 	freeTokens     func() chan interface{}
-	processMessage func(msg string, token interface{}) <-chan bool
+	processMessage func(m queue.Message, token interface{}) <-chan bool
 }
 
 func (mp *messageProcessorMock) FreeTokens() chan interface{} {
@@ -108,8 +108,8 @@ func (mp *messageProcessorMock) FreeTokens() chan interface{} {
 	return mp.tokens
 }
 
-func (mp *messageProcessorMock) ProcessMessage(msg string, token interface{}) <-chan bool {
-	return mp.processMessage(msg, token)
+func (mp *messageProcessorMock) ProcessMessage(m queue.Message, token interface{}) <-chan bool {
+	return mp.processMessage(m, token)
 }
 
 func TestReader_StartReading(t *testing.T) {
@@ -165,7 +165,7 @@ func TestReader_StartReading(t *testing.T) {
 						res <- struct{}{}
 						return res
 					},
-					processMessage: func(msg string, token interface{}) <-chan bool {
+					processMessage: func(msg queue.Message, token interface{}) <-chan bool {
 						c := make(chan bool, 1)
 						go func() {
 							time.Sleep(3 * time.Second)
@@ -240,7 +240,7 @@ func TestReader_StartReading(t *testing.T) {
 						res <- struct{}{}
 						return res
 					},
-					processMessage: func(msg string, token interface{}) <-chan bool {
+					processMessage: func(q queue.Message, token interface{}) <-chan bool {
 						c := make(chan bool, 1)
 						go func() {
 							time.Sleep(3 * time.Second)
@@ -316,7 +316,7 @@ func TestReader_StartReading(t *testing.T) {
 						res <- struct{}{}
 						return res
 					},
-					processMessage: func(msg string, token interface{}) <-chan bool {
+					processMessage: func(q queue.Message, token interface{}) <-chan bool {
 						c := make(chan bool, 1)
 						go func() {
 							time.Sleep(1 * time.Second)

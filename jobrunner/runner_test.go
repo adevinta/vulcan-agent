@@ -11,6 +11,7 @@ import (
 
 	"github.com/adevinta/vulcan-agent/backend"
 	"github.com/adevinta/vulcan-agent/log"
+	"github.com/adevinta/vulcan-agent/queue"
 	"github.com/adevinta/vulcan-agent/stateupdater"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/uuid"
@@ -108,7 +109,7 @@ func TestRunner_ProcessMessage(t *testing.T) {
 		defaultTimeout time.Duration
 	}
 	type args struct {
-		msg   string
+		msg   queue.Message
 		token interface{}
 	}
 	tests := []struct {
@@ -147,7 +148,9 @@ func TestRunner_ProcessMessage(t *testing.T) {
 				CheckUpdater:   &inMemChecksUpdater{},
 			},
 			args: args{
-				msg:   string(mustMarshal(runJobFixture1)),
+				msg: queue.Message{
+					Body: string(mustMarshal(runJobFixture1)),
+				},
 				token: token{},
 			},
 			want: true,
@@ -208,7 +211,9 @@ func TestRunner_ProcessMessage(t *testing.T) {
 				CheckUpdater:   &inMemChecksUpdater{},
 			},
 			args: args{
-				msg:   string(mustMarshal(runJobFixture1)),
+				msg: queue.Message{
+					Body: string(mustMarshal(runJobFixture1)),
+				},
 				token: token{},
 			},
 			want: false,
@@ -254,7 +259,9 @@ func TestRunner_ProcessMessage(t *testing.T) {
 				CheckUpdater:   &inMemChecksUpdater{},
 			},
 			args: args{
-				msg:   string(mustMarshal(runJobFixture1)),
+				msg: queue.Message{
+					Body: string(mustMarshal(runJobFixture1)),
+				},
 				token: token{},
 			},
 			want: true,
@@ -326,7 +333,9 @@ func TestRunner_ProcessMessage(t *testing.T) {
 				CheckUpdater:   &inMemChecksUpdater{},
 			},
 			args: args{
-				msg:   string(mustMarshal(runJobFixture1)),
+				msg: queue.Message{
+					Body: string(mustMarshal(runJobFixture1)),
+				},
 				token: token{},
 			},
 			want: true,
@@ -402,7 +411,9 @@ func TestRunner_ProcessMessage(t *testing.T) {
 				CheckUpdater:   &inMemChecksUpdater{},
 			},
 			args: args{
-				msg:   string(mustMarshal(runJobFixture1)),
+				msg: queue.Message{
+					Body: string(mustMarshal(runJobFixture1)),
+				},
 				token: token{},
 			},
 			want: true,
@@ -464,7 +475,9 @@ func TestRunner_ProcessMessage(t *testing.T) {
 				},
 			},
 			args: args{
-				msg:   string(mustMarshal(runJobFixture1)),
+				msg: queue.Message{
+					Body: string(mustMarshal(runJobFixture1)),
+				},
 				token: token{},
 			},
 			want: false,

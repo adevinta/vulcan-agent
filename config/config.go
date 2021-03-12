@@ -27,7 +27,8 @@ type AgentConfig struct {
 	ConcurrentJobs int    `toml:"concurrent_jobs"`
 	// MaxMsgsInterval defines the maximun time, in seconds, the agent can
 	// running without reading any message from the queue.
-	MaxNoMsgsInterval int `toml:"max_no_msgs_interval"`
+	MaxNoMsgsInterval      int `toml:"max_no_msgs_interval"`
+	MaxProcessMessageTimes int `toml:"max_message_processed_times"`
 }
 
 // StreamConfig defines the configuration for the event stream.

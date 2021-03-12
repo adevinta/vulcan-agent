@@ -102,8 +102,9 @@ func MainWithExitCode(bc BackendCreator) int {
 	}
 
 	runnerCfg := jobrunner.RunnerConfig{
-		MaxTokens:      cfg.Agent.ConcurrentJobs,
-		DefaultTimeout: cfg.Agent.Timeout,
+		MaxTokens:              cfg.Agent.ConcurrentJobs,
+		DefaultTimeout:         cfg.Agent.Timeout,
+		MaxProcessMessageTimes: cfg.Agent.MaxProcessMessageTimes,
 	}
 
 	jrunner := jobrunner.New(l, b, updater, abortedChecks, runnerCfg)
