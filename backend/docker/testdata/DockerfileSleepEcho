@@ -1,2 +1,4 @@
+# Copyright 2021 Adevinta
+
 FROM alpine
 CMD trap 'echo "ok"' TERM ; while true; do :; done

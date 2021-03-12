@@ -1,3 +1,6 @@
+/*
+Copyright 2021 Adevinta
+*/
 package backend
 
 import "context"
