@@ -85,6 +85,7 @@ func NewReader(log log.Logger, cfg config.SQSReader, maxTimeNoRead *time.Duratio
 		MaxNumberOfMessages: aws.Int64(1),
 		WaitTimeSeconds:     aws.Int64(0),
 		VisibilityTimeout:   aws.Int64(int64(cfg.VisibilityTimeout)),
+		AttributeNames:      []*string{aws.String("ApproximateReceiveCount")},
 	}
 	return &Reader{
 		RWMutex:               &sync.RWMutex{},
@@ -156,6 +157,7 @@ func (r *Reader) readMessage(ctx context.Context) (*sqs.Message, error) {
 	start := time.Now()
 	for {
 		r.receiveParams.WaitTimeSeconds = &waitTime
+
 		resp, err := r.sqs.ReceiveMessageWithContext(ctx, &r.receiveParams)
 		if err != nil {
 			if errors.Is(err, context.Canceled) {
