@@ -198,7 +198,7 @@ func (cr *Runner) runJob(m queue.Message, t interface{}, processed chan bool) {
 			cr.finishJob(j.CheckID, processed, false, err)
 			return
 		}
-		err = fmt.Errorf("error max processed times exceeded for check: %s, error: %w", j.CheckID, err)
+		cr.Logger.Errorf("error max processed times exceeded for check: %s", j.CheckID)
 		cr.finishJob(j.CheckID, processed, true, nil)
 		return
 	}
