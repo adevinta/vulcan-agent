@@ -1,3 +1,7 @@
+/*
+Copyright 2019 Adevinta
+*/
+
 package stateupdater
 
 import "encoding/json"
