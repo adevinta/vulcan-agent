@@ -1,4 +1,4 @@
-# Copyright 2019 Adevinta
+# Copyright 2021 Adevinta
 
 FROM alpine
 CMD env | grep VULCAN
