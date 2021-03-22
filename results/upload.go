@@ -19,6 +19,12 @@ import (
 	report "github.com/adevinta/vulcan-report"
 )
 
+const (
+	// MaxEntitySize defines the maximum number of kB's of the payloads the Results client
+	// can send to the Results service.
+	MaxEntitySize = 1024 * 7 // 7 MB's
+)
+
 // ReportData represents the payload for report upload requests.
 type ReportData struct {
 	Report        string    `json:"report"`
@@ -95,8 +101,11 @@ func (u *Uploader) UpdateCheckReport(checkID string, scanStartTime time.Time, re
 // UpdateCheckRaw stores the log of the execution of a check in results service
 // an returns a link that can be used to retreive the logs.
 func (u *Uploader) UpdateCheckRaw(checkID string, scanStartTime time.Time, raw []byte) (string, error) {
+	if len(raw) > MaxEntitySize*1024 {
+		raw = raw[0:MaxEntitySize]
+	}
 	path := path.Join("raw")
-	// We are not going to process scan id's at he agent level.
+	// We are not going to process scan id's at the agent level.
 	rawData := RawData{
 		CheckID:       checkID,
 		ScanID:        checkID,
@@ -144,8 +153,9 @@ func (u *Uploader) jsonRequest(route string, reqBody []byte) (string, error) {
 	location, exists := res.Header["Location"]
 	if !exists || len(location) <= 0 {
 		body := u.tryReadBody(res)
-		errMsg := fmt.Sprintf("invalid response, status: %s, body: %s", res.Status, body)
-		err := fmt.Errorf("%s, %w", errMsg, retryer.ErrPermanent)
+		// Even if the response does not have the proper format the error could
+		// be transient, so we don't return a permanent error here.
+		err := fmt.Errorf("invalid response, status: %s, body: %s", res.Status, body)
 		return "", err
 	}
 	if res.StatusCode == http.StatusCreated && len(location) > 0 {
