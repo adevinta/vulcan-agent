@@ -20,9 +20,9 @@ import (
 )
 
 const (
-	// MaxEntitySize defines the maximum number of kB's of the payloads the Results client
+	// MaxEntitySize defines the maximum number of bytes of the payloads the Results client
 	// can send to the Results service.
-	MaxEntitySize = 1024 * 7 // 7 MB's
+	MaxEntitySize = 1024 * 1024 * 7 // 7 MB's
 )
 
 // ReportData represents the payload for report upload requests.
@@ -101,8 +101,8 @@ func (u *Uploader) UpdateCheckReport(checkID string, scanStartTime time.Time, re
 // UpdateCheckRaw stores the log of the execution of a check in results service
 // an returns a link that can be used to retreive the logs.
 func (u *Uploader) UpdateCheckRaw(checkID string, scanStartTime time.Time, raw []byte) (string, error) {
-	if len(raw) > MaxEntitySize*1024 {
-		raw = raw[0:MaxEntitySize]
+	if len(raw) > MaxEntitySize {
+		raw = raw[:MaxEntitySize-1]
 	}
 	path := path.Join("raw")
 	// We are not going to process scan id's at the agent level.
