@@ -130,17 +130,17 @@ func (b *Docker) run(ctx context.Context, params backend.RunParams, res chan<- b
 		return
 	}
 
-	var status int64
-	status, err = b.cli.ContainerWait(ctx, contID)
-	b.log.Debugf("container with ID %s finished with status %d", contID, status)
+	var exit int64
+	exit, err = b.cli.ContainerWait(ctx, contID)
+	b.log.Debugf("container with ID %s finished with exit code %d", contID, exit)
 	if err != nil && !errors.Is(err, context.Canceled) && !errors.Is(err, context.DeadlineExceeded) {
 		err := fmt.Errorf("error running container for check %s: %w", params.CheckID, err)
 		res <- backend.RunResult{Error: err}
 		return
 	}
 
-	if status != 0 && !errors.Is(err, context.Canceled) && !errors.Is(err, context.DeadlineExceeded) {
-		err = fmt.Errorf("%w status: %d", backend.ErrConExitUnexpected, status)
+	if exit != 0 && !errors.Is(err, context.Canceled) && !errors.Is(err, context.DeadlineExceeded) {
+		err = fmt.Errorf("%w exit: %d", backend.ErrNotZeroExitCode, exit)
 	}
 
 	if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {

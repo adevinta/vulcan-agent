@@ -21,9 +21,9 @@ const (
 	AgentAddressVar     = "VULCAN_AGENT_ADDRESS"
 )
 
-// ErrConExitUnexpected is returned by the docker backend when a
-// container was killed externally while running.
-var ErrConExitUnexpected = errors.New("container finished unexpectedly")
+// ErrNotZeroExitCode is returned by the docker backend when a container
+// finished with an exit code different from 0.
+var ErrNotZeroExitCode = errors.New("container finished unexpectedly")
 
 // RunResult defines the info that must be returned when a check is
 // finished.

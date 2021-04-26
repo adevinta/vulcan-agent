@@ -749,7 +749,7 @@ func TestRunner_ProcessMessage(t *testing.T) {
 							}
 							results := backend.RunResult{
 								Output: output,
-								Error:  backend.ErrConExitUnexpected,
+								Error:  backend.ErrNotZeroExitCode,
 							}
 							res <- results
 						}()

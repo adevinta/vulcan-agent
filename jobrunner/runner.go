@@ -310,7 +310,7 @@ func (cr *Runner) runJob(m queue.Message, t interface{}, processed chan bool) {
 	if execErr != nil &&
 		!errors.Is(execErr, context.DeadlineExceeded) &&
 		!errors.Is(execErr, context.Canceled) &&
-		!errors.Is(execErr, backend.ErrConExitUnexpected) {
+		!errors.Is(execErr, backend.ErrNotZeroExitCode) {
 		cr.finishJob(j.CheckID, processed, false, execErr)
 		return
 	}
@@ -325,7 +325,7 @@ func (cr *Runner) runJob(m queue.Message, t interface{}, processed chan bool) {
 	if errors.Is(execErr, context.Canceled) {
 		status = stateupdater.StatusAborted
 	}
-	if errors.Is(execErr, backend.ErrConExitUnexpected) {
+	if errors.Is(execErr, backend.ErrNotZeroExitCode) {
 		status = stateupdater.StatusFailed
 	}
 	// Ensure the check sent a status update with a terminal status.
