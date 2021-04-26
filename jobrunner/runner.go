@@ -309,8 +309,8 @@ func (cr *Runner) runJob(m queue.Message, t interface{}, processed chan bool) {
 	execErr := res.Error
 	if execErr != nil &&
 		!errors.Is(execErr, context.DeadlineExceeded) &&
-		!errors.Is(execErr, context.Canceled) { // &&
-		// !errors.Is(execErr, backend.ErrConExitUnexpected) {
+		!errors.Is(execErr, context.Canceled) &&
+		!errors.Is(execErr, backend.ErrConExitUnexpected) {
 		cr.finishJob(j.CheckID, processed, false, execErr)
 		return
 	}
