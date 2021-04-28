@@ -24,7 +24,9 @@ const (
 	StatusInconclusive = "INCONCLUSIVE"
 )
 
-var terminalStatuses = map[string]struct{}{
+// TerminalStatuses contains all the possible statuses of a check that are
+// terminal.
+var TerminalStatuses = map[string]struct{}{
 	StatusFailed:       {},
 	StatusFinished:     {},
 	StatusInconclusive: {},
@@ -76,7 +78,7 @@ func (u *Updater) UpdateState(s CheckState) error {
 	if s.Status != nil {
 		status = *s.Status
 	}
-	if _, ok := terminalStatuses[status]; ok {
+	if _, ok := TerminalStatuses[status]; ok {
 		u.terminalChecks.Store(s.ID, struct{}{})
 	}
 	return nil

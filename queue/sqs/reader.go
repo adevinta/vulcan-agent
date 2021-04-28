@@ -203,22 +203,25 @@ func (r *Reader) processAndTrack(msg *sqs.Message, token interface{}) {
 		atomic.AddUint32(&r.nProcessingMessages, ^uint32(0))
 		r.wg.Done()
 	}()
-	if msg.Body == nil {
-		r.log.Errorf("unexpected empty body message from sqs")
+	err := validateSQSMessage(msg)
+	if err != nil {
+		r.log.Errorf("error %+v", err)
+		if msg.ReceiptHandle == nil {
+			r.log.Errorf("cannot delete invalid message, receipt handle is empty")
+			return
+		}
 		// Invalid message delete from queue without processing.
 		_, err := r.sqs.DeleteMessage(&sqs.DeleteMessageInput{
 			ReceiptHandle: msg.ReceiptHandle,
 			QueueUrl:      r.receiveParams.QueueUrl,
 		})
 		if err != nil {
-			r.log.Errorf("deleting processed message", err.Error())
+			r.log.Errorf("deleting invalid message", err.Error())
 		}
+		return
 	}
 	m := queue.Message{Body: *msg.Body}
-	var (
-		n   int
-		err error
-	)
+	var n int
 	if rc, ok := msg.Attributes["ApproximateReceiveCount"]; ok && rc != nil {
 		n, err = strconv.Atoi(*rc)
 		if err != nil {
@@ -271,4 +274,20 @@ func (r *Reader) LastMessageReceived() *time.Time {
 	r.RLock()
 	defer r.RUnlock()
 	return r.lastMessageReceived
+}
+
+func validateSQSMessage(msg *sqs.Message) error {
+	if msg == nil {
+		return errors.New("unexpected empty message")
+	}
+	if msg.Body == nil {
+		return errors.New("unexpected empty body message")
+	}
+	if msg.MessageId == nil {
+		return errors.New("unexpected empty message id")
+	}
+	if msg.ReceiptHandle == nil {
+		return errors.New("unexpected empty receipt handle")
+	}
+	return nil
 }

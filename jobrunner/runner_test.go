@@ -22,15 +22,6 @@ import (
 )
 
 var (
-	terminalStatuses = map[string]struct{}{
-		stateupdater.StatusFailed:       {},
-		stateupdater.StatusFinished:     {},
-		stateupdater.StatusInconclusive: {},
-		stateupdater.StatusKilled:       {},
-		stateupdater.StatusMalformed:    {},
-		stateupdater.StatusTimeout:      {},
-	}
-
 	errUnexpectedTest = errors.New("unexpected")
 
 	runJobFixture1 = Job{
@@ -91,7 +82,7 @@ func (im *inMemChecksUpdater) CheckStatusTerminal(ID string) bool {
 		if u.Status != nil {
 			status = *u.Status
 		}
-		if _, ok := terminalStatuses[status]; ok {
+		if _, ok := stateupdater.TerminalStatuses[status]; ok {
 			return true
 		}
 	}
@@ -749,7 +740,7 @@ func TestRunner_ProcessMessage(t *testing.T) {
 							}
 							results := backend.RunResult{
 								Output: output,
-								Error:  backend.ErrNotZeroExitCode,
+								Error:  backend.ErrNonZeroExitCode,
 							}
 							res <- results
 						}()

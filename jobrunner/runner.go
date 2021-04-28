@@ -310,14 +310,15 @@ func (cr *Runner) runJob(m queue.Message, t interface{}, processed chan bool) {
 	if execErr != nil &&
 		!errors.Is(execErr, context.DeadlineExceeded) &&
 		!errors.Is(execErr, context.Canceled) &&
-		!errors.Is(execErr, backend.ErrNotZeroExitCode) {
+		!errors.Is(execErr, backend.ErrNonZeroExitCode) {
 		cr.finishJob(j.CheckID, processed, false, execErr)
 		return
 	}
 
 	// The only times when this component has to set the state of a check are
-	// when the check is canceled or timedout. That's because, in those cases, it
-	// is possible for the check to not have had time to set the state itself.
+	// when the check is canceled, timedout or finished with an exit status code
+	// different from 0 . That's because, in those cases, it is possible for the
+	// check to not have had time to set the state by itself.
 	var status string
 	if errors.Is(execErr, context.DeadlineExceeded) {
 		status = stateupdater.StatusTimeout
@@ -325,7 +326,7 @@ func (cr *Runner) runJob(m queue.Message, t interface{}, processed chan bool) {
 	if errors.Is(execErr, context.Canceled) {
 		status = stateupdater.StatusAborted
 	}
-	if errors.Is(execErr, backend.ErrNotZeroExitCode) {
+	if errors.Is(execErr, backend.ErrNonZeroExitCode) {
 		status = stateupdater.StatusFailed
 	}
 	// Ensure the check sent a status update with a terminal status.

@@ -140,7 +140,7 @@ func (b *Docker) run(ctx context.Context, params backend.RunParams, res chan<- b
 	}
 
 	if exit != 0 && !errors.Is(err, context.Canceled) && !errors.Is(err, context.DeadlineExceeded) {
-		err = fmt.Errorf("%w exit: %d", backend.ErrNotZeroExitCode, exit)
+		err = fmt.Errorf("%w exit: %d", backend.ErrNonZeroExitCode, exit)
 	}
 
 	if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
