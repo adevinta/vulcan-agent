@@ -203,6 +203,10 @@ func (r *Reader) processAndTrack(msg *sqs.Message, token interface{}) {
 		atomic.AddUint32(&r.nProcessingMessages, ^uint32(0))
 		r.wg.Done()
 	}()
+	if msg == nil {
+		r.log.Errorf("cannot process nil message")
+		return
+	}
 	err := validateSQSMessage(msg)
 	if err != nil {
 		r.log.Errorf("error %+v", err)
