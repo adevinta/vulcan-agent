@@ -96,18 +96,18 @@ func (a *API) CheckUpdate(c CheckState) error {
 		rlink = &link
 
 		// Log every single vulnerability reported by the check that is missing
-		// the new vulcan-report.Vulnerability.{Category,AffectedResource} field.
-		mC := make(map[string]bool)
+		// the new vulcan-report.Vulnerability.{Labels,AffectedResource} field.
+		mL := make(map[string]bool)
 		mAR := make(map[string]bool)
 		for _, v := range c.Report.Vulnerabilities {
-			if mC[v.Summary] && mAR[v.Summary] {
+			if mL[v.Summary] && mAR[v.Summary] {
 				continue
 			}
-			if !mC[v.Summary] {
-				mC[v.Summary] = true
+			if !mL[v.Summary] {
+				mL[v.Summary] = true
 
-				if v.Category == "" {
-					a.log.Infof("report from [%s] does not contain a category for [%s]", c.Report.ChecktypeName, v.Summary)
+				if len(v.Labels) == 0 {
+					a.log.Infof("report from [%s] does not contain labels for [%s]", c.Report.ChecktypeName, v.Summary)
 				}
 			}
 			if !mAR[v.Summary] {
