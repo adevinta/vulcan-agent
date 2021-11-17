@@ -7,7 +7,7 @@ require (
 	github.com/Microsoft/go-winio v0.4.14 // indirect
 	github.com/adevinta/dockerutils v0.0.0-20190826104125-915f26bde8e5
 	github.com/adevinta/vulcan-metrics-client v0.0.0-20200617105830-6078a0e12ebd
-	github.com/adevinta/vulcan-report v0.0.0-20210830131559-d13f81ad6b01
+	github.com/adevinta/vulcan-report v0.0.0-20211117082128-cadc974cc14c
 	github.com/aws/aws-sdk-go v1.30.11
 	github.com/cenkalti/backoff v2.2.1+incompatible // indirect
 	github.com/docker/distribution v2.7.1+incompatible // indirect
