@@ -24,6 +24,7 @@ import (
 
 	"github.com/adevinta/vulcan-agent/backend"
 	"github.com/adevinta/vulcan-agent/config"
+	"github.com/adevinta/vulcan-agent/jobrunner"
 	"github.com/adevinta/vulcan-agent/log"
 	"github.com/adevinta/vulcan-agent/retryer"
 )
@@ -170,13 +171,10 @@ func NewBackend(log log.Logger, cfg config.Config, updater ConfigUpdater) (backe
 // Run starts executing a check as a local container and returns a channel that
 // will contain the result of the execution when it finishes.
 func (b *Docker) Run(ctx context.Context, params backend.RunParams) (<-chan backend.RunResult, error) {
-	if b.config.Server != "" {
-		err := b.pull(ctx, params.Image)
-		if err != nil {
-			return nil, err
-		}
+	err := b.pull(ctx, params.Image)
+	if err != nil {
+		return nil, err
 	}
-
 	var res = make(chan backend.RunResult)
 	go b.run(ctx, params, res)
 	return res, nil
@@ -274,13 +272,18 @@ func (b Docker) getContainerlogs(ID string) ([]byte, error) {
 
 func (b Docker) pull(ctx context.Context, image string) error {
 	err := b.retryer.WithRetries("PullDockerImage", func() error {
-		buf, err := json.Marshal(b.auth)
-		if err != nil {
-			return err
-		}
-		encodedAuth := base64.URLEncoding.EncodeToString(buf)
-		pullOpts := types.ImagePullOptions{
-			RegistryAuth: encodedAuth,
+		pullOpts := types.ImagePullOptions{}
+
+		// image was validated before and ParseImage always return a domain
+		domain, _, _, _, _ := jobrunner.ParseImage(image)
+
+		if b.config.Server == domain {
+			buf, err := json.Marshal(b.auth)
+			if err != nil {
+				return err
+			}
+			encodedAuth := base64.URLEncoding.EncodeToString(buf)
+			pullOpts.RegistryAuth = encodedAuth
 		}
 		respBody, err := b.cli.ImagePull(ctx, image, pullOpts)
 		if err != nil {

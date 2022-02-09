@@ -9,7 +9,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"regexp"
 	"sync"
 	"time"
 
@@ -17,6 +16,8 @@ import (
 	"github.com/adevinta/vulcan-agent/log"
 	"github.com/adevinta/vulcan-agent/queue"
 	"github.com/adevinta/vulcan-agent/stateupdater"
+	"github.com/docker/distribution/reference"
+	"github.com/opencontainers/go-digest"
 )
 
 var (
@@ -383,14 +384,37 @@ func (cr *Runner) ChecksRunning() int {
 
 // getChecktypeInfo extracts checktype data from a Docker image URI.
 func getChecktypeInfo(imageURI string) (checktypeName string, checktypeVersion string, err error) {
-	// https://github.com/docker/distribution/blob/master/reference/reference.go#L1-L24
-	re := regexp.MustCompile(`(?P<checktype_name>[a-z0-9]+(?:[-_.][a-z0-9]+)*):(?P<checktype_version>[\w][\w.-]{0,127})`)
-	matches := re.FindStringSubmatch(imageURI)
-	if matches == nil {
-		err = fmt.Errorf("unable to parse imageURI %s", imageURI)
+	domain, path, tag, _, err := ParseImage(imageURI)
+	if err != nil {
+		err = fmt.Errorf("unable to parse image %s - %+v", imageURI, err)
 		return
 	}
-	checktypeName = matches[1]
-	checktypeVersion = matches[2]
+	checktypeName = fmt.Sprintf("%s/%s", domain, path)
+	checktypeVersion = tag
+	return
+}
+
+// ParseImage validates and enrich the image with domain (i.e. docker.io if missing), tag (latest if missing), ...
+func ParseImage(image string) (domain, path, tag string, dig digest.Digest, err error) {
+	ref, err := reference.ParseAnyReference(image)
+	if err != nil {
+		return
+	}
+	named, isNamed := ref.(reference.Named)
+	if !isNamed {
+		err = fmt.Errorf("image=%s but only named images supported", image)
+		return
+	}
+	named = reference.TagNameOnly(named)
+	domain = reference.Domain(named)
+	path = reference.Path(named)
+	tagged, isTagged := named.(reference.Tagged)
+	if isTagged {
+		tag = tagged.Tag()
+	}
+	digested, isDig := ref.(reference.Digested)
+	if isDig {
+		dig = digested.Digest()
+	}
 	return
 }
