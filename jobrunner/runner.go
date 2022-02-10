@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 
@@ -389,7 +390,11 @@ func getChecktypeInfo(imageURI string) (checktypeName string, checktypeVersion s
 		err = fmt.Errorf("unable to parse image %s - %+v", imageURI, err)
 		return
 	}
-	checktypeName = fmt.Sprintf("%s/%s", domain, path)
+	if domain != "docker.io" {
+		checktypeName = fmt.Sprintf("%s/%s", domain, path)
+	} else {
+		checktypeName = strings.TrimPrefix(path, "library/")
+	}
 	checktypeVersion = tag
 	return
 }

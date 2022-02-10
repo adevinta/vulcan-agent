@@ -21,7 +21,9 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/adevinta/vulcan-agent/backend"
+	"github.com/adevinta/vulcan-agent/config"
 	"github.com/adevinta/vulcan-agent/log"
+	"github.com/adevinta/vulcan-agent/retryer"
 )
 
 func TestIntegrationDockerRun(t *testing.T) {
@@ -49,10 +51,14 @@ func TestIntegrationDockerRun(t *testing.T) {
 					panic(err)
 				}
 				b := &Docker{
+					config: config.RegistryConfig{
+						PullPolicy: "IfNotPresent",
+					},
 					agentAddr: "an addr",
 					log:       &log.NullLog{},
 					cli:       cli,
 					checkVars: map[string]string{"VULCAN_CHECK_VAR": "value_var_1"},
+					retryer:   retryer.NewRetryer(0, 0, &log.NullLog{}),
 				}
 				err = buildDockerImage("testdata/DockerfileEnv", "vulcan-check")
 				if err != nil {
@@ -121,9 +127,13 @@ func TestIntegrationDockerRunKillContainer(t *testing.T) {
 	}
 
 	b := &Docker{
+		config: config.RegistryConfig{
+			PullPolicy: "IfNotPresent",
+		},
 		agentAddr: "an addr",
 		log:       &log.NullLog{},
 		cli:       cli,
+		retryer:   retryer.NewRetryer(0, 0, &log.NullLog{}),
 	}
 	err = buildDockerImage("testdata/DockerfileSleep", "vulcan-check")
 	if err != nil {
@@ -176,9 +186,13 @@ func TestIntegrationDockerDetectUnexpectedExit(t *testing.T) {
 	}
 
 	b := &Docker{
+		config: config.RegistryConfig{
+			PullPolicy: "IfNotPresent",
+		},
 		agentAddr: "an addr",
 		log:       &log.NullLog{},
 		cli:       cli,
+		retryer:   retryer.NewRetryer(0, 0, &log.NullLog{}),
 	}
 	err = buildDockerImage("testdata/DockerfileSleep", "vulcan-check")
 	if err != nil {
@@ -224,9 +238,13 @@ func TestIntegrationDockerRunAbortGracefully(t *testing.T) {
 		panic(err)
 	}
 	b := &Docker{
+		config: config.RegistryConfig{
+			PullPolicy: "IfNotPresent",
+		},
 		agentAddr: "an addr",
 		log:       &log.NullLog{},
 		cli:       cli,
+		retryer:   retryer.NewRetryer(0, 0, &log.NullLog{}),
 	}
 	err = buildDockerImage("testdata/DockerfileSleepEcho", "vulcan-check")
 	if err != nil {

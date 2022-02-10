@@ -18,6 +18,7 @@ import (
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
+	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/api/types/network"
 	"github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/stdcopy"
@@ -271,20 +272,40 @@ func (b Docker) getContainerlogs(ID string) ([]byte, error) {
 }
 
 func (b Docker) pull(ctx context.Context, image string) error {
-	err := b.retryer.WithRetries("PullDockerImage", func() error {
-		pullOpts := types.ImagePullOptions{}
-
-		// image was validated before and ParseImage always return a domain
-		domain, _, _, _, _ := jobrunner.ParseImage(image)
-
-		if b.config.Server == domain {
-			buf, err := json.Marshal(b.auth)
-			if err != nil {
-				return err
-			}
-			encodedAuth := base64.URLEncoding.EncodeToString(buf)
-			pullOpts.RegistryAuth = encodedAuth
+	if b.config.PullPolicy == "Never" {
+		return nil
+	}
+	if b.config.PullPolicy == "IfNotPresent" {
+		images, err := b.cli.ImageList(context.Background(), types.ImageListOptions{
+			Filters: filters.NewArgs(filters.KeyValuePair{
+				Key:   "reference",
+				Value: image,
+			}),
+		})
+		if err != nil {
+			return err
 		}
+		if len(images) == 1 {
+			return nil
+		}
+	}
+	pullOpts := types.ImagePullOptions{}
+
+	// image was validated before and ParseImage always return a domain
+	domain, _, _, _, err := jobrunner.ParseImage(image)
+	if err != nil {
+		return err
+	}
+	// Look if we have credentials for the image domain
+	if b.config.Server == domain {
+		buf, err := json.Marshal(b.auth)
+		if err != nil {
+			return err
+		}
+		encodedAuth := base64.URLEncoding.EncodeToString(buf)
+		pullOpts.RegistryAuth = encodedAuth
+	}
+	err = b.retryer.WithRetries("PullDockerImage", func() error {
 		respBody, err := b.cli.ImagePull(ctx, image, pullOpts)
 		if err != nil {
 			return err
