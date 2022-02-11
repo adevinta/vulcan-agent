@@ -323,7 +323,6 @@ func (b Docker) pull(ctx context.Context, image string) error {
 // It will inject the check options and target as environment variables.
 // It will return the generated docker.RunConfig.
 func (b *Docker) getRunConfig(params backend.RunParams) RunConfig {
-	b.log.Debugf("fetching check required variables %+v", params.RequiredVars)
 	vars := dockerVars(params.RequiredVars, b.checkVars)
 	return RunConfig{
 		ContainerConfig: &container.Config{
