@@ -14,6 +14,7 @@ import (
 	"io"
 	"io/ioutil"
 	"net"
+	"strings"
 	"time"
 
 	"github.com/docker/docker/api/types"
@@ -64,9 +65,9 @@ type Docker struct {
 	checkVars backend.CheckVars
 	log       log.Logger
 	cli       *client.Client
-	auth      types.AuthConfig
 	retryer   Retryer
 	updater   ConfigUpdater
+	auths     map[string]*types.AuthConfig
 }
 
 // getAgentAddr returns the current address of the agent API from the Docker network.
@@ -140,33 +141,61 @@ func NewBackend(log log.Logger, cfg config.Config, updater ConfigUpdater) (backe
 		cli:       envCli,
 		retryer:   re,
 		updater:   updater,
+		auths:     make(map[string]*types.AuthConfig),
 	}
-
-	if cfgReg.Server == "" {
-		return b, nil
+	// Eager validation of the existing registries.
+	if b.config.Server != "" {
+		if _, err := b.registryLogin(b.config.Server, b.config.User, b.config.Pass); err != nil {
+			return nil, err
+		}
 	}
+	return b, nil
+}
 
-	pass := cfgReg.Pass
-	user := cfgReg.User
-	if pass == "" {
-		creds, err := Credentials(cfgReg.Server)
+func (b *Docker) registryLogin(domain, user, password string) (*types.AuthConfig, error) {
+
+	// the containers domain in docker.io but the authentication domain is index.docker.io
+	authDomain := domain
+	if domain == "docker.io" {
+		authDomain = "index.docker.io"
+	}
+	if domain == "index.docker.io" {
+		domain = "docker.io"
+	}
+	if password == "" {
+		creds, err := Credentials(authDomain)
 		if err != nil {
 			return nil, err
 		}
-		pass = creds.Secret
 		user = creds.Username
+		password = creds.Secret
 	}
 	auth := types.AuthConfig{
 		Username:      user,
-		Password:      pass,
-		ServerAddress: cfgReg.Server,
+		Password:      password,
+		ServerAddress: authDomain,
 	}
-	_, err = b.cli.RegistryLogin(context.Background(), auth)
+	_, err := b.cli.RegistryLogin(context.Background(), auth)
 	if err != nil {
 		return nil, err
 	}
-	b.auth = auth
-	return b, nil
+
+	b.auths[domain] = &auth
+	return &auth, nil
+}
+
+func (b *Docker) getRegistryAuth(domain string) (auth *types.AuthConfig, err error) {
+	var ok bool
+
+	// Look if we have credentials for the image domain
+	if auth, ok = b.auths[domain]; !ok {
+		if b.config.Server == domain {
+			return b.registryLogin(domain, b.config.User, b.config.Pass)
+		} else {
+			return b.registryLogin(domain, "", "")
+		}
+	}
+	return
 }
 
 // Run starts executing a check as a local container and returns a channel that
@@ -272,10 +301,11 @@ func (b Docker) getContainerlogs(ID string) ([]byte, error) {
 }
 
 func (b Docker) pull(ctx context.Context, image string) error {
-	if b.config.PullPolicy == "Never" {
+	pp := strings.ToLower(b.config.PullPolicy)
+	if pp == "never" {
 		return nil
 	}
-	if b.config.PullPolicy == "IfNotPresent" {
+	if pp == "ifnotpresent" {
 		images, err := b.cli.ImageList(context.Background(), types.ImageListOptions{
 			Filters: filters.NewArgs(filters.KeyValuePair{
 				Key:   "reference",
@@ -296,15 +326,16 @@ func (b Docker) pull(ctx context.Context, image string) error {
 	if err != nil {
 		return err
 	}
-	// Look if we have credentials for the image domain
-	if b.config.Server == domain {
-		buf, err := json.Marshal(b.auth)
+	auth, _ := b.getRegistryAuth(domain)
+	if auth != nil {
+		buf, err := json.Marshal(auth)
 		if err != nil {
 			return err
 		}
-		encodedAuth := base64.URLEncoding.EncodeToString(buf)
-		pullOpts.RegistryAuth = encodedAuth
+		pullOpts.RegistryAuth = base64.URLEncoding.EncodeToString(buf)
 	}
+	b.log.Debugf("Pulling image=%s domain=%s auth=%v", image, domain, pullOpts.RegistryAuth != "")
+	start := time.Now()
 	err = b.retryer.WithRetries("PullDockerImage", func() error {
 		respBody, err := b.cli.ImagePull(ctx, image, pullOpts)
 		if err != nil {
@@ -316,6 +347,7 @@ func (b Docker) pull(ctx context.Context, image string) error {
 		}
 		return nil
 	})
+	b.log.Infof("Pulled image=%s domain=%s auth=%v time=%s err=%v", image, domain, pullOpts.RegistryAuth != "", time.Since(start), err)
 	return err
 }
 
