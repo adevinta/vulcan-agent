@@ -845,3 +845,83 @@ func mustMarshalRunParams(params backend.RunParams) []byte {
 func str2ptr(str string) *string {
 	return &str
 }
+
+func TestRunner_getChecktypeInfo(t *testing.T) {
+	tests := []struct {
+		image    string
+		wants    []string
+		wantsErr bool
+	}{
+		{
+			image: "check",
+			wants: []string{"check", "latest"},
+		},
+		{
+			image: "check:1",
+			wants: []string{"check", "1"},
+		},
+		{
+			image: "vulcan/check1",
+			wants: []string{"vulcan/check1", "latest"},
+		},
+		{ // Should be error?
+			image: "docker.io/check1",
+			wants: []string{"check1", "latest"},
+		},
+		{
+			image: "docker.io/vulcansec/check1",
+			wants: []string{"vulcansec/check1", "latest"},
+		},
+		{
+			image: "artifactory.com/check1",
+			wants: []string{"artifactory.com/check1", "latest"},
+		},
+		{
+			image: "artifactory.com/vulcan/check1",
+			wants: []string{"artifactory.com/vulcan/check1", "latest"},
+		},
+		{
+			image: "artifactory.com/vulcan/check1:1",
+			wants: []string{"artifactory.com/vulcan/check1", "1"},
+		},
+		{
+			image: "artifactory.com:1234/vulcan/check1:1",
+			wants: []string{"artifactory.com:1234/vulcan/check1", "1"},
+		},
+		{
+			image:    "http://artifactory.com:1234/vulcan/check1:1",
+			wants:    []string{"", ""},
+			wantsErr: true,
+		},
+		{
+			image:    "image with spaces",
+			wants:    []string{"", ""},
+			wantsErr: true,
+		},
+		{
+			image:    "docker.io@sha256:f57dfd15e2361cb76ac7b9a22d08326acd3734e96fde93b2aae7fa054d61a014",
+			wants:    []string{"", ""},
+			wantsErr: true, // not supported
+		},
+		{
+			image:    "vulcansec/vulcan-exposed-ssh@sha256:f57dfd15e2361cb76ac7b9a22d08326acd3734e96fde93b2aae7fa054d61a014",
+			wants:    []string{"", ""},
+			wantsErr: true, // TODO: Investigate why - "unsupported digest algorithm"
+		},
+		{
+			image:    "vulcansec/vulcan-exposed-ssh@sha256:f57dfd15e2361cb76ac7b9a22d08326acd3734e96fde93b2aae7fa054d61a014",
+			wants:    []string{"", ""},
+			wantsErr: true, // TODO: Investigate why - "unsupported digest algorithm"
+		},
+	}
+	for _, c := range tests {
+		n, v, err := getChecktypeInfo(c.image)
+		if c.wantsErr != (err != nil) {
+			t.Errorf("image:%s want error %v and got %v", c.image, c.wantsErr, err)
+		}
+		if diff := cmp.Diff(c.wants, []string{n, v}); diff != "" {
+			t.Errorf("image:%s want state!=got state, diff %s", c.image, diff)
+		}
+	}
+
+}

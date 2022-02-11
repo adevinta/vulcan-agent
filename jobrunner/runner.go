@@ -390,24 +390,26 @@ func getChecktypeInfo(imageURI string) (checktypeName string, checktypeVersion s
 		err = fmt.Errorf("unable to parse image %s - %+v", imageURI, err)
 		return
 	}
-	if domain != "docker.io" {
-		checktypeName = fmt.Sprintf("%s/%s", domain, path)
-	} else {
+	if domain == "docker.io" {
+		// Ignore docker.io and "library/" as we don't expect a check in docker.io/library
 		checktypeName = strings.TrimPrefix(path, "library/")
+	} else {
+		checktypeName = fmt.Sprintf("%s/%s", domain, path)
 	}
 	checktypeVersion = tag
 	return
 }
 
-// ParseImage validates and enrich the image with domain (i.e. docker.io if missing), tag (latest if missing), ...
-func ParseImage(image string) (domain, path, tag string, dig digest.Digest, err error) {
-	ref, err := reference.ParseAnyReference(image)
+// ParseImage validates and enrich the image with domain (docker.io if domain missing), tag (latest if missing),
+// (library/ if no domain and one level path)
+func ParseImage(imageURI string) (domain, path, tag string, dig digest.Digest, err error) {
+	ref, err := reference.ParseAnyReference(imageURI)
 	if err != nil {
 		return
 	}
 	named, isNamed := ref.(reference.Named)
 	if !isNamed {
-		err = fmt.Errorf("image=%s but only named images supported", image)
+		err = fmt.Errorf("image=%s but only named images supported", imageURI)
 		return
 	}
 	named = reference.TagNameOnly(named)
