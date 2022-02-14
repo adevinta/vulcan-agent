@@ -6,10 +6,10 @@ require (
 	github.com/BurntSushi/toml v1.0.0
 	github.com/adevinta/vulcan-metrics-client v0.0.0-20210317131634-8775c25303f7
 	github.com/adevinta/vulcan-report v0.0.0-20211117082128-cadc974cc14c
-	github.com/aws/aws-sdk-go v1.42.49
+	github.com/aws/aws-sdk-go v1.42.52
+	github.com/docker/cli v20.10.12+incompatible
 	github.com/docker/distribution v2.8.0+incompatible
 	github.com/docker/docker v20.10.12+incompatible
-	github.com/docker/docker-credential-helpers v0.6.4
 	github.com/google/go-cmp v0.5.5
 	github.com/google/uuid v1.2.0
 	github.com/gorilla/websocket v1.4.2
@@ -23,6 +23,7 @@ require (
 	github.com/DataDog/datadog-go v3.7.1+incompatible // indirect
 	github.com/Microsoft/go-winio v0.4.17 // indirect
 	github.com/containerd/containerd v1.5.9 // indirect
+	github.com/docker/docker-credential-helpers v0.6.4 // indirect
 	github.com/docker/go-connections v0.4.0 // indirect
 	github.com/docker/go-units v0.4.0 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
