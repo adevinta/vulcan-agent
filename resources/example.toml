@@ -70,7 +70,7 @@ pass = "supersecret"
 backoff_interval = 5
 backoff_max_retries = 5
 backoff_jitter_factor = 0.5
-
+pull_policy = ifnotpresent
 
 [datadog]
 metrics_enabled = false

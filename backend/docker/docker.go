@@ -36,6 +36,14 @@ import (
 const abortTimeout = 5 * time.Second
 const defaultDockerIfaceName = "docker0"
 
+const (
+	PullPolicyAlways       = "Always"
+	PullPolicyIfNotPresent = "IfNotPresent"
+	PullPolicyNever        = "Never"
+)
+
+var PullPolicies = []string{PullPolicyAlways, PullPolicyIfNotPresent, PullPolicyNever}
+
 // RunConfig contains the configuration for executing a check in a container.
 type RunConfig struct {
 	ContainerConfig       *container.Config
@@ -145,11 +153,13 @@ func NewBackend(log log.Logger, cfg config.Config, updater ConfigUpdater) (backe
 		updater:   updater,
 		auths:     make(map[string]*types.AuthConfig),
 	}
-	// Eager validation of the existing registries.
+
+	// Eager validation of the configured registries.
 	if b.config.Server != "" {
+		// Fails if not able to authenticate
 		if _, err = b.getRegistryAuth(b.config.Server); err != nil {
 			log.Errorf("unable to login in %s: %+v", b.config.Server, err)
-			// return nil, err
+			return nil, err
 		}
 	}
 	return b, nil
@@ -316,11 +326,10 @@ func (b Docker) getContainerlogs(ID string) ([]byte, error) {
 }
 
 func (b Docker) pull(ctx context.Context, image string) error {
-	pp := strings.ToLower(b.config.PullPolicy)
-	if pp == "never" {
+	if strings.EqualFold(b.config.PullPolicy, PullPolicyNever) {
 		return nil
 	}
-	if pp == "ifnotpresent" {
+	if strings.EqualFold(b.config.PullPolicy, PullPolicyIfNotPresent) {
 		images, err := b.cli.ImageList(ctx, types.ImageListOptions{
 			Filters: filters.NewArgs(filters.KeyValuePair{
 				Key:   "reference",

@@ -52,7 +52,7 @@ func TestIntegrationDockerRun(t *testing.T) {
 				}
 				b := &Docker{
 					config: config.RegistryConfig{
-						PullPolicy: "IfNotPresent",
+						PullPolicy: PullPolicyIfNotPresent,
 					},
 					agentAddr: "an addr",
 					log:       &log.NullLog{},
@@ -128,7 +128,7 @@ func TestIntegrationDockerRunKillContainer(t *testing.T) {
 
 	b := &Docker{
 		config: config.RegistryConfig{
-			PullPolicy: "IfNotPresent",
+			PullPolicy: PullPolicyIfNotPresent,
 		},
 		agentAddr: "an addr",
 		log:       &log.NullLog{},
@@ -187,7 +187,7 @@ func TestIntegrationDockerDetectUnexpectedExit(t *testing.T) {
 
 	b := &Docker{
 		config: config.RegistryConfig{
-			PullPolicy: "IfNotPresent",
+			PullPolicy: PullPolicyIfNotPresent,
 		},
 		agentAddr: "an addr",
 		log:       &log.NullLog{},
@@ -239,7 +239,7 @@ func TestIntegrationDockerRunAbortGracefully(t *testing.T) {
 	}
 	b := &Docker{
 		config: config.RegistryConfig{
-			PullPolicy: "IfNotPresent",
+			PullPolicy: PullPolicyIfNotPresent,
 		},
 		agentAddr: "an addr",
 		log:       &log.NullLog{},
