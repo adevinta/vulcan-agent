@@ -100,7 +100,7 @@ type RegistryConfig struct {
 	BackoffInterval     int     `toml:"backoff_interval"`
 	BackoffMaxRetries   int     `toml:"backoff_max_retries"`
 	BackoffJitterFactor float64 `toml:"backoff_jitter_factor"`
-	PullPolicy          string  `toml:"pull_policy"` // TODO: Validate options Never / Always / IfNotPresent and set default
+	PullPolicy          string  `toml:"pull_policy"`
 }
 
 // KubernetesConfig defines the configuration for the Kubernetes runtime environment.

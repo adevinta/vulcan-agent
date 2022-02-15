@@ -116,6 +116,18 @@ func getAgentAddr(port, ifaceName string) (string, error) {
 	return "", errors.New("failed to determine Docker agent IP address")
 }
 
+func validateEnum(value string, options []string, defaultValue string) (string, error) {
+	if value == "" {
+		value = defaultValue
+	}
+	for _, o := range options {
+		if strings.EqualFold(value, o) {
+			return o, nil
+		}
+	}
+	return "", fmt.Errorf("invalid value=%v allowed=%v", value, options)
+}
+
 // NewBackend creates a new Docker backend using the given config, agent api addres and CheckVars.
 // A ConfigUpdater function can be passed to inspect/update the final docker RunConfig
 // before creating the container for each check.
@@ -152,6 +164,10 @@ func NewBackend(log log.Logger, cfg config.Config, updater ConfigUpdater) (backe
 		retryer:   re,
 		updater:   updater,
 		auths:     make(map[string]*types.AuthConfig),
+	}
+
+	if b.config.PullPolicy, err = validateEnum(b.config.PullPolicy, PullPolicies, PullPolicyIfNotPresent); err != nil {
+		return nil, err
 	}
 
 	// Eager validation of the configured registries.
