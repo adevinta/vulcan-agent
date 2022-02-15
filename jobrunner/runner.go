@@ -402,14 +402,9 @@ func getChecktypeInfo(imageURI string) (checktypeName string, checktypeVersion s
 
 // ParseImage validates and enrich the image with domain (docker.io if domain missing), tag (latest if missing),
 // (library/ if no domain and one level path)
-func ParseImage(imageURI string) (domain, path, tag string, dig digest.Digest, err error) {
-	ref, err := reference.ParseAnyReference(imageURI)
+func ParseImage(image string) (domain, path, tag string, dig digest.Digest, err error) {
+	named, err := reference.ParseNormalizedNamed(image)
 	if err != nil {
-		return
-	}
-	named, isNamed := ref.(reference.Named)
-	if !isNamed {
-		err = fmt.Errorf("image=%s but only named images supported", imageURI)
 		return
 	}
 	named = reference.TagNameOnly(named)
@@ -419,7 +414,7 @@ func ParseImage(imageURI string) (domain, path, tag string, dig digest.Digest, e
 	if isTagged {
 		tag = tagged.Tag()
 	}
-	digested, isDig := ref.(reference.Digested)
+	digested, isDig := named.(reference.Digested)
 	if isDig {
 		dig = digested.Digest()
 	}

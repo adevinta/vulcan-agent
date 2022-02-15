@@ -904,12 +904,12 @@ func TestRunner_getChecktypeInfo(t *testing.T) {
 			wantsErr: true, // not supported
 		},
 		{
-			image:    "vulcansec/vulcan-exposed-ssh@sha256:f57dfd15e2361cb76ac7b9a22d08326acd3734e96fde93b2aae7fa054d61a014",
+			image:    "docker.io/library/busybox:latest@sha256:7cc4b5aefd1d0cadf8d97d4350462ba51c694ebca145b08d7d41b41acc8db5aa",
 			wants:    []string{"", ""},
 			wantsErr: true, // TODO: Investigate why - "unsupported digest algorithm"
 		},
 		{
-			image:    "vulcansec/vulcan-exposed-ssh@sha256:f57dfd15e2361cb76ac7b9a22d08326acd3734e96fde93b2aae7fa054d61a014",
+			image:    "docker.io/library/busybox@sha256:7cc4b5aefd1d0cadf8d97d4350462ba51c694ebca145b08d7d41b41acc8db5aa",
 			wants:    []string{"", ""},
 			wantsErr: true, // TODO: Investigate why - "unsupported digest algorithm"
 		},
