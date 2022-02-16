@@ -15,6 +15,7 @@ import (
 	"io/ioutil"
 	"net"
 	"strings"
+	"sync"
 	"time"
 
 	dockercliconfig "github.com/docker/cli/cli/config"
@@ -78,6 +79,7 @@ type Docker struct {
 	retryer   Retryer
 	updater   ConfigUpdater
 	auths     map[string]*types.AuthConfig
+	mu        sync.Mutex
 }
 
 // getAgentAddr returns the current address of the agent API from the Docker network.
@@ -210,7 +212,11 @@ func (b *Docker) addRegistryAuth(auth *types.AuthConfig) error {
 	}
 
 	// Look if we have credentials for the image domain
-	if _, ok := b.auths[domain]; ok {
+	b.mu.Lock()
+	_, ok := b.auths[domain]
+	b.mu.Unlock()
+
+	if ok {
 		b.log.Infof("an auth for %s already exists", auth.ServerAddress)
 		return nil
 	}
@@ -223,7 +229,9 @@ func (b *Docker) addRegistryAuth(auth *types.AuthConfig) error {
 		b.log.Infof("Auth validated for %s with %s", domain, auth.Username)
 	}
 
+	b.mu.Lock()
 	b.auths[domain] = auth
+	b.mu.Unlock()
 
 	return err
 }
@@ -237,7 +245,11 @@ func (b *Docker) getRegistryAuth(domain string) (*types.AuthConfig, error) {
 	}
 
 	// Look if we have credentials for the image domain
-	if auth, ok := b.auths[domain]; ok {
+	b.mu.Lock()
+	auth, ok := b.auths[domain]
+	b.mu.Unlock()
+
+	if ok {
 		return auth, nil
 	}
 
