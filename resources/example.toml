@@ -70,7 +70,15 @@ pass = "supersecret"
 backoff_interval = 5
 backoff_max_retries = 5
 backoff_jitter_factor = 0.5
-pull_policy = ifnotpresent
+pull_policy = "ifnotpresent"
+[[runtime.docker.registry.auths]]
+server = "docker.artifactory.com"
+user = "user1"
+pass = "supersecret1"
+[[runtime.docker.registry.auths]]
+server = "xxx.gce.io"
+user = "user2"
+pass = "supersecret2"
 
 [datadog]
 metrics_enabled = false

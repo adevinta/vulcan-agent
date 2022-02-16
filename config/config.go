@@ -92,8 +92,15 @@ type DockerConfig struct {
 	Registry RegistryConfig `toml:"registry"`
 }
 
+type Auth struct {
+	Server string `toml:"server"`
+	User   string `toml:"user"`
+	Pass   string `toml:"pass"`
+}
+
 // RegistryConfig defines the configuration for the Docker registry.
 type RegistryConfig struct {
+	Auths               []Auth  `toml:"auths"`
 	Server              string  `toml:"server"`
 	User                string  `toml:"user"`
 	Pass                string  `toml:"pass"`

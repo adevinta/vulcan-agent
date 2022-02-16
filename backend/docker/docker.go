@@ -170,73 +170,100 @@ func NewBackend(log log.Logger, cfg config.Config, updater ConfigUpdater) (backe
 		return nil, err
 	}
 
-	// Eager validation of the configured registries.
+	if b.config.Auths == nil {
+		b.config.Auths = []config.Auth{}
+	}
+	// Add the legacy single registry auth to the slice
 	if b.config.Server != "" {
-		// Fails if not able to authenticate
-		if _, err = b.getRegistryAuth(b.config.Server); err != nil {
-			log.Errorf("unable to login in %s: %+v", b.config.Server, err)
+		b.config.Auths = append(b.config.Auths, config.Auth{
+			Server: b.config.Server,
+			User:   b.config.User,
+			Pass:   b.config.Pass,
+		})
+	}
+
+	// Eager validation of the configured registries.
+	for _, a := range b.config.Auths {
+		auth := &types.AuthConfig{
+			Username:      a.User,
+			Password:      a.Pass,
+			ServerAddress: a.Server,
+		}
+
+		// This prevents the agent to start with wrong supplied credentials
+		if err = b.addRegistryAuth(auth); err != nil {
+			log.Errorf("unable to login in %s: %+v", a.Server, err)
 			return nil, err
 		}
 	}
 	return b, nil
 }
 
-func (b *Docker) getRegistryAuth(domain string) (auth *types.AuthConfig, err error) {
-	var ok bool
+// addRegistryAuth validates the indicated auth against the server and if
+// ok it adds to the slice of available auths
+func (b *Docker) addRegistryAuth(auth *types.AuthConfig) error {
+	var err error
 
-	// the containers domain in docker.io but the authentication domain is index.docker.io
-	authDomain := domain
+	domain := auth.ServerAddress
 	if domain == "docker.io" {
-		authDomain = "index.docker.io"
-	}
-	if domain == "index.docker.io" {
-		domain = "docker.io"
+		domain = "index.docker.io"
 	}
 
 	// Look if we have credentials for the image domain
-	if auth, ok = b.auths[domain]; ok {
-		return
+	if _, ok := b.auths[domain]; ok {
+		b.log.Infof("an auth for %s already exists", auth.ServerAddress)
+		return nil
 	}
 
-	auth = &types.AuthConfig{}
-	if domain == b.config.Server && b.config.Pass != "" {
-		auth = &types.AuthConfig{
-			Username:      b.config.User,
-			Password:      b.config.Pass,
-			ServerAddress: authDomain,
-		}
+	if _, err = b.cli.RegistryLogin(context.Background(), *auth); err != nil {
+		b.log.Errorf("wrong credentials provided for %s error=%+v", domain, err)
+		// We store the failed auth to prevent trying
+		auth = nil
 	} else {
-		buf := new(bytes.Buffer)
-		dockerConfig := dockercliconfig.LoadDefaultConfigFile(buf)
-		if buf.String() != "" {
-			b.log.Errorf("unable to load docker default config %s", buf.String())
-		} else {
-			a, err := dockerConfig.GetAuthConfig(authDomain)
-			if err != nil {
-				b.log.Errorf("credentials not available %+v", err)
-			} else {
-				// Copy all the data (same struct declared in different packages)
-				auth.Username = a.Username
-				auth.Password = a.Password
-				auth.Auth = a.Auth
-				auth.IdentityToken = a.IdentityToken
-				auth.ServerAddress = a.ServerAddress
-			}
-		}
-	}
-	_, err = b.cli.RegistryLogin(context.Background(), *auth)
-	if err != nil {
-
-		// This prevents keep trying with the wrong credentials
-		// The pull will be unauthenticated
-		b.auths[domain] = nil
-
-		return nil, err
+		b.log.Infof("Auth validated for %s with %s", domain, auth.Username)
 	}
 
 	b.auths[domain] = auth
 
-	return auth, nil
+	return err
+}
+
+// getRegistryAuth tries to find an authentication for the domain
+// First it looks into the provided authenticated servers
+// If not avialiable it looks into the docker system stored credentials.
+func (b *Docker) getRegistryAuth(domain string) (*types.AuthConfig, error) {
+	if domain == "docker.io" {
+		domain = "index.docker.io"
+	}
+
+	// Look if we have credentials for the image domain
+	if auth, ok := b.auths[domain]; ok {
+		return auth, nil
+	}
+
+	buf := new(bytes.Buffer)
+	dockerConfig := dockercliconfig.LoadDefaultConfigFile(buf)
+	if buf.String() != "" {
+		b.log.Errorf("unable to load docker default config %s", buf.String())
+	} else {
+		a, err := dockerConfig.GetAuthConfig(domain)
+		if err != nil {
+			b.log.Infof("credentials not available %+v", err)
+		} else {
+			// Copy all the data (same struct declared in different packages)
+			auth := &types.AuthConfig{
+				Username:      a.Username,
+				Password:      a.Password,
+				Auth:          a.Auth,
+				IdentityToken: a.IdentityToken,
+				ServerAddress: a.ServerAddress,
+			}
+			if err = b.addRegistryAuth(auth); err == nil {
+				return auth, nil
+			}
+		}
+	}
+	return nil, nil
 }
 
 // Run starts executing a check as a local container and returns a channel that
