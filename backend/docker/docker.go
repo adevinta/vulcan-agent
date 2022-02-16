@@ -361,7 +361,7 @@ func (b *Docker) run(ctx context.Context, params backend.RunParams, res chan<- b
 	res <- backend.RunResult{Output: out, Error: err}
 }
 
-func (b Docker) getContainerlogs(ID string) ([]byte, error) {
+func (b *Docker) getContainerlogs(ID string) ([]byte, error) {
 	logOpts := types.ContainerLogsOptions{
 		ShowStdout: true,
 		ShowStderr: true,
@@ -380,7 +380,7 @@ func (b Docker) getContainerlogs(ID string) ([]byte, error) {
 	return out, nil
 }
 
-func (b Docker) pull(ctx context.Context, image string) error {
+func (b *Docker) pull(ctx context.Context, image string) error {
 	if strings.EqualFold(b.config.PullPolicy, PullPolicyNever) {
 		return nil
 	}
