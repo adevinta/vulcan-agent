@@ -79,7 +79,7 @@ type Docker struct {
 	retryer   Retryer
 	updater   ConfigUpdater
 	auths     map[string]*types.AuthConfig
-	mu        sync.Mutex
+	mu        sync.RWMutex
 }
 
 // getAgentAddr returns the current address of the agent API from the Docker network.
@@ -212,9 +212,9 @@ func (b *Docker) addRegistryAuth(auth *types.AuthConfig) error {
 	}
 
 	// Look if we have credentials for the image domain
-	b.mu.Lock()
+	b.mu.RLock()
 	_, ok := b.auths[domain]
-	b.mu.Unlock()
+	b.mu.RUnlock()
 
 	if ok {
 		b.log.Infof("an auth for %s already exists", auth.ServerAddress)
@@ -245,9 +245,9 @@ func (b *Docker) getRegistryAuth(domain string) (*types.AuthConfig, error) {
 	}
 
 	// Look if we have credentials for the image domain
-	b.mu.Lock()
+	b.mu.RLock()
 	auth, ok := b.auths[domain]
-	b.mu.Unlock()
+	b.mu.RUnlock()
 
 	if ok {
 		return auth, nil
