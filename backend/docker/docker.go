@@ -221,9 +221,8 @@ func (b *Docker) addRegistryAuth(auth *types.AuthConfig) error {
 }
 
 func (b *Docker) fetchAuth(domain string) (*types.AuthConfig, bool) {
-	if domain == "docker.io" {
-		domain = "index.docker.io"
-	}
+	domain = getAuthDomain(domain)
+
 	b.mu.RLock()
 	defer b.mu.RUnlock()
 	auth, ok := b.auths[domain]
@@ -231,12 +230,18 @@ func (b *Docker) fetchAuth(domain string) (*types.AuthConfig, bool) {
 }
 
 func (b *Docker) storeAuth(domain string, auth *types.AuthConfig) {
-	if domain == "docker.io" {
-		domain = "index.docker.io"
-	}
+	domain = getAuthDomain(domain)
+
 	b.mu.Lock()
 	defer b.mu.Unlock()
 	b.auths[domain] = auth
+}
+
+func getAuthDomain(domain string) string {
+	if domain == "docker.io" {
+		return "index.docker.io"
+	}
+	return domain
 }
 
 // getRegistryAuth tries to find an authentication for the domain
@@ -259,6 +264,8 @@ func (b *Docker) getRegistryAuth(domain string) *types.AuthConfig {
 }
 
 func (b *Docker) getStoredCredentials(domain string) *types.AuthConfig {
+	domain = getAuthDomain(domain)
+
 	buf := new(bytes.Buffer)
 	dockerConfig := dockercliconfig.LoadDefaultConfigFile(buf)
 	if dockerConfig == nil {
@@ -276,7 +283,7 @@ func (b *Docker) getStoredCredentials(domain string) *types.AuthConfig {
 		return nil
 	}
 
-	if a.Password == "" && a.IdentityToken == "" {
+	if a.ServerAddress == "" {
 		b.log.Infof("empty credentials for %s", domain)
 		return nil
 	}
