@@ -64,19 +64,23 @@ REGISTRY_PASSWORD = "supersecret"
 [runtime]
 [runtime.docker]
 [runtime.docker.registry]
-server = "docker.example.com"
+
+# Kept for compatibility (better add to runtime.docker.registry.auths)
+server = "registry.example.com"
 user = "user"
 pass = "supersecret"
+
 backoff_interval = 5
 backoff_max_retries = 5
 backoff_jitter_factor = 0.5
 pull_policy = "ifnotpresent"
+
 [[runtime.docker.registry.auths]]
-server = "docker.artifactory.com"
+server = "registry1.example.com"
 user = "user1"
 pass = "supersecret1"
 [[runtime.docker.registry.auths]]
-server = "xxx.gce.io"
+server = "registry2.example.com"
 user = "user2"
 pass = "supersecret2"
 

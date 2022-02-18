@@ -169,7 +169,7 @@ func NewBackend(log log.Logger, cfg config.Config, updater ConfigUpdater) (backe
 	}
 
 	if b.config.PullPolicy, err = validateEnum(b.config.PullPolicy, PullPolicies, PullPolicyIfNotPresent); err != nil {
-		return nil, err
+		return &Docker{}, err
 	}
 
 	if b.config.Auths == nil {
@@ -201,81 +201,94 @@ func NewBackend(log log.Logger, cfg config.Config, updater ConfigUpdater) (backe
 	return b, nil
 }
 
-// addRegistryAuth validates the indicated auth against the server and if
-// ok it adds to the slice of available auths
+// addRegistryAuth adds the auth to the map only if valid
 func (b *Docker) addRegistryAuth(auth *types.AuthConfig) error {
-	var err error
-
-	domain := auth.ServerAddress
-	if domain == "docker.io" {
-		domain = "index.docker.io"
-	}
-
-	// Look if we have credentials for the image domain
-	b.mu.RLock()
-	_, ok := b.auths[domain]
-	b.mu.RUnlock()
-
+	auth, ok := b.fetchAuth(auth.ServerAddress)
 	if ok {
 		b.log.Infof("an auth for %s already exists", auth.ServerAddress)
 		return nil
 	}
 
-	if _, err = b.cli.RegistryLogin(context.Background(), *auth); err != nil {
-		b.log.Errorf("wrong credentials provided for %s error=%+v", domain, err)
-		// We store the failed auth to prevent trying
-		auth = nil
-	} else {
-		b.log.Infof("Auth validated for %s with %s", domain, auth.Username)
+	if _, err := b.cli.RegistryLogin(context.Background(), *auth); err != nil {
+		b.log.Errorf("wrong credentials provided for %s error=%+v", auth.ServerAddress, err)
+		return err
 	}
 
-	b.mu.Lock()
-	b.auths[domain] = auth
-	b.mu.Unlock()
+	b.log.Infof("Auth validated for %s with %s", auth.ServerAddress, auth.Username)
+	b.storeAuth(auth.ServerAddress, auth)
 
-	return err
+	return nil
+}
+
+func (b *Docker) fetchAuth(domain string) (*types.AuthConfig, bool) {
+	if domain == "docker.io" {
+		domain = "index.docker.io"
+	}
+	b.mu.RLock()
+	defer b.mu.RUnlock()
+	auth, ok := b.auths[domain]
+	return auth, ok
+}
+
+func (b *Docker) storeAuth(domain string, auth *types.AuthConfig) {
+	if domain == "docker.io" {
+		domain = "index.docker.io"
+	}
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	b.auths[domain] = auth
 }
 
 // getRegistryAuth tries to find an authentication for the domain
 // First it looks into the provided authenticated servers
 // If not avialiable it looks into the docker system stored credentials.
-func (b *Docker) getRegistryAuth(domain string) (*types.AuthConfig, error) {
-	if domain == "docker.io" {
-		domain = "index.docker.io"
-	}
-
-	// Look if we have credentials for the image domain
-	b.mu.RLock()
-	auth, ok := b.auths[domain]
-	b.mu.RUnlock()
-
+func (b *Docker) getRegistryAuth(domain string) *types.AuthConfig {
+	auth, ok := b.fetchAuth(domain)
 	if ok {
-		return auth, nil
+		return auth
 	}
-
-	buf := new(bytes.Buffer)
-	dockerConfig := dockercliconfig.LoadDefaultConfigFile(buf)
-	if buf.String() != "" {
-		b.log.Errorf("unable to load docker default config %s", buf.String())
-	} else {
-		a, err := dockerConfig.GetAuthConfig(domain)
-		if err != nil {
-			b.log.Infof("credentials not available %+v", err)
-		} else {
-			// Copy all the data (same struct declared in different packages)
-			auth := &types.AuthConfig{
-				Username:      a.Username,
-				Password:      a.Password,
-				Auth:          a.Auth,
-				IdentityToken: a.IdentityToken,
-				ServerAddress: a.ServerAddress,
-			}
-			if err = b.addRegistryAuth(auth); err == nil {
-				return auth, nil
-			}
+	if auth = b.getStoredCredentials(domain); auth != nil {
+		if err := b.addRegistryAuth(auth); err == nil {
+			return auth
 		}
 	}
-	return nil, nil
+
+	// Store nil to prevent trying again for this domain.
+	b.storeAuth(domain, nil)
+	return nil
+}
+
+func (b *Docker) getStoredCredentials(domain string) *types.AuthConfig {
+	buf := new(bytes.Buffer)
+	dockerConfig := dockercliconfig.LoadDefaultConfigFile(buf)
+	if dockerConfig == nil {
+		b.log.Errorf("unable to loadDefaultConfigFile %s")
+		return nil
+	}
+
+	if buf.String() != "" {
+		b.log.Errorf("unable to load docker default config %s", buf.String())
+		return nil
+	}
+	a, err := dockerConfig.GetAuthConfig(domain)
+	if err != nil {
+		b.log.Infof("error getting credentials for %s - %+v", err)
+		return nil
+	}
+
+	if a.Password == "" && a.IdentityToken == "" {
+		b.log.Infof("empty credentials for %s", domain)
+		return nil
+	}
+
+	// Copy all the data (same struct indifferent packages)
+	return &types.AuthConfig{
+		Username:      a.Username,
+		Password:      a.Password,
+		Auth:          a.Auth,
+		IdentityToken: a.IdentityToken,
+		ServerAddress: a.ServerAddress,
+	}
 }
 
 // Run starts executing a check as a local container and returns a channel that
@@ -394,22 +407,19 @@ func (b *Docker) pull(ctx context.Context, image string) error {
 		if err != nil {
 			return err
 		}
-		if len(images) == 1 {
+		if len(images) > 0 {
 			return nil
 		}
 	}
 	pullOpts := types.ImagePullOptions{}
 
-	// image was validated before and ParseImage always return a domain
+	// Image was validated before and ParseImage always return a domain.
 	domain, _, _, _, err := jobrunner.ParseImage(image)
 	if err != nil {
 		return err
 	}
-	auth, err := b.getRegistryAuth(domain)
-	if err != nil {
-		b.log.Errorf("error %+v", err)
-	}
-	if auth != nil {
+
+	if auth := b.getRegistryAuth(domain); auth != nil {
 		buf, err := json.Marshal(auth)
 		if err != nil {
 			return err

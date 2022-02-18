@@ -387,14 +387,13 @@ func (cr *Runner) ChecksRunning() int {
 func getChecktypeInfo(imageURI string) (checktypeName string, checktypeVersion string, err error) {
 	domain, path, tag, _, err := ParseImage(imageURI)
 	if err != nil {
-		err = fmt.Errorf("unable to parse image %s - %+v", imageURI, err)
+		err = fmt.Errorf("unable to parse image %s - %w", imageURI, err)
 		return
 	}
+	checktypeName = fmt.Sprintf("%s/%s", domain, path)
 	if domain == "docker.io" {
-		// Ignore docker.io and "library/" as we don't expect a check in docker.io/library
+		// Ignore docker.io and "library/" as we don't expect a check in docker.io/library.
 		checktypeName = strings.TrimPrefix(path, "library/")
-	} else {
-		checktypeName = fmt.Sprintf("%s/%s", domain, path)
 	}
 	checktypeVersion = tag
 	return
