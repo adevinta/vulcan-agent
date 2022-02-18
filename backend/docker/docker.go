@@ -203,7 +203,7 @@ func NewBackend(log log.Logger, cfg config.Config, updater ConfigUpdater) (backe
 
 // addRegistryAuth adds the auth to the map only if valid
 func (b *Docker) addRegistryAuth(auth *types.AuthConfig) error {
-	auth, ok := b.fetchAuth(auth.ServerAddress)
+	_, ok := b.fetchAuth(auth.ServerAddress)
 	if ok {
 		b.log.Infof("an auth for %s already exists", auth.ServerAddress)
 		return nil
