@@ -23,7 +23,6 @@ import (
 	"github.com/adevinta/vulcan-agent/backend"
 	"github.com/adevinta/vulcan-agent/config"
 	"github.com/adevinta/vulcan-agent/log"
-	"github.com/adevinta/vulcan-agent/retryer"
 )
 
 func TestIntegrationDockerRun(t *testing.T) {
@@ -52,13 +51,12 @@ func TestIntegrationDockerRun(t *testing.T) {
 				}
 				b := &Docker{
 					config: config.RegistryConfig{
-						PullPolicy: PullPolicyIfNotPresent,
+						PullPolicy: PullPolicyNever,
 					},
 					agentAddr: "an addr",
 					log:       &log.NullLog{},
 					cli:       cli,
 					checkVars: map[string]string{"VULCAN_CHECK_VAR": "value_var_1"},
-					retryer:   retryer.NewRetryer(0, 0, &log.NullLog{}),
 				}
 				err = buildDockerImage("testdata/DockerfileEnv", "vulcan-check")
 				if err != nil {
@@ -128,12 +126,11 @@ func TestIntegrationDockerRunKillContainer(t *testing.T) {
 
 	b := &Docker{
 		config: config.RegistryConfig{
-			PullPolicy: PullPolicyIfNotPresent,
+			PullPolicy: PullPolicyNever,
 		},
 		agentAddr: "an addr",
 		log:       &log.NullLog{},
 		cli:       cli,
-		retryer:   retryer.NewRetryer(0, 0, &log.NullLog{}),
 	}
 	err = buildDockerImage("testdata/DockerfileSleep", "vulcan-check")
 	if err != nil {
@@ -187,12 +184,11 @@ func TestIntegrationDockerDetectUnexpectedExit(t *testing.T) {
 
 	b := &Docker{
 		config: config.RegistryConfig{
-			PullPolicy: PullPolicyIfNotPresent,
+			PullPolicy: PullPolicyNever,
 		},
 		agentAddr: "an addr",
 		log:       &log.NullLog{},
 		cli:       cli,
-		retryer:   retryer.NewRetryer(0, 0, &log.NullLog{}),
 	}
 	err = buildDockerImage("testdata/DockerfileSleep", "vulcan-check")
 	if err != nil {
@@ -239,12 +235,11 @@ func TestIntegrationDockerRunAbortGracefully(t *testing.T) {
 	}
 	b := &Docker{
 		config: config.RegistryConfig{
-			PullPolicy: PullPolicyIfNotPresent,
+			PullPolicy: PullPolicyNever,
 		},
 		agentAddr: "an addr",
 		log:       &log.NullLog{},
 		cli:       cli,
-		retryer:   retryer.NewRetryer(0, 0, &log.NullLog{}),
 	}
 	err = buildDockerImage("testdata/DockerfileSleepEcho", "vulcan-check")
 	if err != nil {
@@ -290,6 +285,77 @@ func TestIntegrationDockerRunAbortGracefully(t *testing.T) {
 	}
 }
 
+func TestIntegrationDockerFindImage(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping test in short mode")
+	}
+	cli, err := client.NewClientWithOpts(client.FromEnv)
+	if err != nil {
+		panic(err)
+	}
+	b := &Docker{
+		config: config.RegistryConfig{
+			PullPolicy: PullPolicyNever,
+		},
+		agentAddr: "an addr",
+		log:       &log.NullLog{},
+		cli:       cli,
+	}
+	err = buildDockerImage("testdata/DockerfileSleepEcho", "vulcan-check")
+	if err != nil {
+		panic(err)
+	}
+	if err != nil {
+		panic(err)
+	}
+
+	tests := []struct {
+		image   string
+		exists  []string
+		missing []string
+	}{
+		{
+			image:   "check",
+			exists:  []string{"check", "check:latest", "docker.io/check", "docker.io/check:latest"},
+			missing: []string{"check2", "registry.com/check", "registry.com/check:latest"},
+		},
+		{
+			image:   "check:latest",
+			exists:  []string{"check", "check:latest", "docker.io/check", "docker.io/check:latest"},
+			missing: []string{"check2", "registry.com/check", "registry.com/check:latest"},
+		},
+		{
+			image:   "check:tag",
+			exists:  []string{"check:tag", "docker.io/check:tag"},
+			missing: []string{"check", "check:latest", "check2:tag", "registry.com/check", "registry.com/check:latest"},
+		},
+		{
+			image:   "vulcan/check:tag",
+			exists:  []string{"vulcan/check:tag", "docker.io/vulcan/check:tag"},
+			missing: []string{"vulcan/check", "vulcan/check:latest", "vulcan/check2:tag", "registry.com/vulcan/check", "registry.com/vulcan/check:latest"},
+		},
+		{
+			image:   "registry.com/vulcan/check:tag",
+			exists:  []string{"registry.com/vulcan/check:tag"},
+			missing: []string{"docker.io/vulcan/check:tag", "vulcan/check:tag", "vulcan/check:latest", "vulcan/check2:tag", "registry.com/vulcan/check", "registry.com/vulcan/check:latest"},
+		},
+	}
+	for _, c := range tests {
+		tagDockerImage("vulcan-check", c.image)
+		for _, v := range c.exists {
+			if exists, _ := b.imageExists(context.Background(), v); !exists {
+				t.Errorf("image:%s check:%s should exists", c.image, v)
+			}
+		}
+		for _, v := range c.missing {
+			if exists, _ := b.imageExists(context.Background(), v); exists {
+				t.Errorf("image:%s check:%s should not exists", c.image, v)
+			}
+		}
+		removeDockerImage(c.image)
+	}
+}
+
 func buildDockerImage(dockerFile string, tag string) (err error) {
 	path, err := filepath.Abs(dockerFile)
 	if err != nil {
@@ -303,6 +369,32 @@ func buildDockerImage(dockerFile string, tag string) (err error) {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	return cmd.Run()
+}
+
+func tagDockerImage(image string, tag string) (err error) {
+	args := []string{"tag", image, tag}
+	cmd := exec.Command("docker", args...)
+	cmd.Env = os.Environ()
+	cmd.Stdin = os.Stdin
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	if err = cmd.Run(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func removeDockerImage(image string) (err error) {
+	args := []string{"rmi", image}
+	cmd := exec.Command("docker", args...)
+	cmd.Env = os.Environ()
+	cmd.Stdin = os.Stdin
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	if err = cmd.Run(); err != nil {
+		return err
+	}
+	return nil
 }
 
 func removeContainer(name string) (err error) {

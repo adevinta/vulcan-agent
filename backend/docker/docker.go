@@ -193,7 +193,7 @@ func NewBackend(log log.Logger, cfg config.Config, updater ConfigUpdater) (backe
 		}
 
 		// This prevents the agent to start with wrong supplied credentials
-		if err = b.addRegistryAuth(auth); err != nil {
+		if err = b.addRegistryAuth(auth.ServerAddress, auth); err != nil {
 			log.Errorf("unable to login in %s: %+v", a.Server, err)
 			return nil, err
 		}
@@ -202,20 +202,20 @@ func NewBackend(log log.Logger, cfg config.Config, updater ConfigUpdater) (backe
 }
 
 // addRegistryAuth adds the auth to the map only if valid
-func (b *Docker) addRegistryAuth(auth *types.AuthConfig) error {
-	_, ok := b.fetchAuth(auth.ServerAddress)
+func (b *Docker) addRegistryAuth(domain string, auth *types.AuthConfig) error {
+	_, ok := b.fetchAuth(domain)
 	if ok {
-		b.log.Infof("an auth for %s already exists", auth.ServerAddress)
+		b.log.Infof("an auth for %s already exists", domain)
 		return nil
 	}
 
 	if _, err := b.cli.RegistryLogin(context.Background(), *auth); err != nil {
-		b.log.Errorf("wrong credentials provided for %s error=%+v", auth.ServerAddress, err)
+		b.log.Errorf("wrong credentials provided for %s %s error=%+v", domain, auth.ServerAddress, err)
 		return err
 	}
 
-	b.log.Infof("Auth validated for %s with %s", auth.ServerAddress, auth.Username)
-	b.storeAuth(auth.ServerAddress, auth)
+	b.log.Infof("Auth validated for %s %s with %s", domain, auth.ServerAddress, auth.Username)
+	b.storeAuth(domain, auth)
 
 	return nil
 }
@@ -253,7 +253,7 @@ func (b *Docker) getRegistryAuth(domain string) *types.AuthConfig {
 		return auth
 	}
 	if auth = b.getStoredCredentials(domain); auth != nil {
-		if err := b.addRegistryAuth(auth); err == nil {
+		if err := b.addRegistryAuth(domain, auth); err == nil {
 			return auth
 		}
 	}
@@ -400,28 +400,51 @@ func (b *Docker) getContainerlogs(ID string) ([]byte, error) {
 	return out, nil
 }
 
+func (b *Docker) imageExists(ctx context.Context, image string) (bool, error) {
+	domain, path, tag, err := jobrunner.ParseImage(image)
+	if err != nil {
+		return false, err
+	}
+
+	// Build a pattern with the tag to prevent returning all the tags from the image
+	pattern := domain + "/" + path + ":" + tag
+	// We remove docker.io because ImageList doesn't find images with prefix docker.io
+	if domain == "docker.io" {
+		pattern = path + ":" + tag
+	}
+
+	images, err := b.cli.ImageList(ctx, types.ImageListOptions{
+		Filters: filters.NewArgs(filters.KeyValuePair{
+			Key:   "reference",
+			Value: pattern,
+		}),
+	})
+	if err != nil {
+		return false, err
+	}
+	if len(images) == 0 {
+		return false, nil
+	}
+	return true, nil
+}
+
 func (b *Docker) pull(ctx context.Context, image string) error {
 	if strings.EqualFold(b.config.PullPolicy, PullPolicyNever) {
 		return nil
 	}
 	if strings.EqualFold(b.config.PullPolicy, PullPolicyIfNotPresent) {
-		images, err := b.cli.ImageList(ctx, types.ImageListOptions{
-			Filters: filters.NewArgs(filters.KeyValuePair{
-				Key:   "reference",
-				Value: image,
-			}),
-		})
+		exists, err := b.imageExists(ctx, image)
 		if err != nil {
 			return err
 		}
-		if len(images) > 0 {
+		if exists {
 			return nil
 		}
 	}
 	pullOpts := types.ImagePullOptions{}
 
 	// Image was validated before and ParseImage always return a domain.
-	domain, _, _, _, err := jobrunner.ParseImage(image)
+	domain, _, _, err := jobrunner.ParseImage(image)
 	if err != nil {
 		return err
 	}
