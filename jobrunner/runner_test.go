@@ -908,5 +908,4 @@ func TestRunner_getChecktypeInfo(t *testing.T) {
 			t.Errorf("image:%s want state!=got state, diff %s", c.image, diff)
 		}
 	}
-
 }

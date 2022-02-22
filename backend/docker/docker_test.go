@@ -309,47 +309,72 @@ func TestIntegrationDockerFindImage(t *testing.T) {
 		panic(err)
 	}
 
+	// Create a list of references
+	refs := []string{}
+	for _, reg := range []string{"", "docker.io/", "registry.com/", "dockerhub.com/"} {
+		for _, path := range []string{"", "vulcan/", "vul/can/"} {
+			for _, tag := range []string{"", ":tag", ":tag2", ":latest"} {
+				refs = append(refs, reg+path+"check"+tag)
+			}
+		}
+	}
+
 	tests := []struct {
-		image   string
-		exists  []string
-		missing []string
+		image  string
+		valids []string
 	}{
 		{
-			image:   "check",
-			exists:  []string{"check", "check:latest", "docker.io/check", "docker.io/check:latest"},
-			missing: []string{"check2", "registry.com/check", "registry.com/check:latest"},
+			image:  "check",
+			valids: []string{"check", "check:latest", "docker.io/check", "docker.io/check:latest"},
 		},
 		{
-			image:   "check:latest",
-			exists:  []string{"check", "check:latest", "docker.io/check", "docker.io/check:latest"},
-			missing: []string{"check2", "registry.com/check", "registry.com/check:latest"},
+			image:  "check:latest",
+			valids: []string{"check", "check:latest", "docker.io/check", "docker.io/check:latest"},
 		},
 		{
-			image:   "check:tag",
-			exists:  []string{"check:tag", "docker.io/check:tag"},
-			missing: []string{"check", "check:latest", "check2:tag", "registry.com/check", "registry.com/check:latest"},
+			image:  "check:tag",
+			valids: []string{"check:tag", "docker.io/check:tag"},
 		},
 		{
-			image:   "vulcan/check:tag",
-			exists:  []string{"vulcan/check:tag", "docker.io/vulcan/check:tag"},
-			missing: []string{"vulcan/check", "vulcan/check:latest", "vulcan/check2:tag", "registry.com/vulcan/check", "registry.com/vulcan/check:latest"},
+			image:  "vulcan/check:tag",
+			valids: []string{"vulcan/check:tag", "docker.io/vulcan/check:tag"},
 		},
 		{
-			image:   "registry.com/vulcan/check:tag",
-			exists:  []string{"registry.com/vulcan/check:tag"},
-			missing: []string{"docker.io/vulcan/check:tag", "vulcan/check:tag", "vulcan/check:latest", "vulcan/check2:tag", "registry.com/vulcan/check", "registry.com/vulcan/check:latest"},
+			image:  "vul/can/check:tag",
+			valids: []string{"vul/can/check:tag", "docker.io/vul/can/check:tag"},
+		},
+		{
+			image:  "registry.com/vulcan/check:tag",
+			valids: []string{"registry.com/vulcan/check:tag"},
 		},
 	}
 	for _, c := range tests {
 		tagDockerImage("vulcan-check", c.image)
-		for _, v := range c.exists {
+
+		// Check if the valid references are valid.
+		for _, v := range c.valids {
 			if exists, _ := b.imageExists(context.Background(), v); !exists {
-				t.Errorf("image:%s check:%s should exists", c.image, v)
+				t.Errorf("image:%s %s should exists", c.image, v)
 			}
 		}
-		for _, v := range c.missing {
-			if exists, _ := b.imageExists(context.Background(), v); exists {
-				t.Errorf("image:%s check:%s should not exists", c.image, v)
+
+		// Validate against all the references
+		for _, r := range refs {
+
+			valid := false
+			for _, v := range c.valids {
+				if v == r {
+					valid = true
+				}
+			}
+
+			// Skip if it is valid.
+			if !valid {
+				// This reference should'n exists
+				if exists, _ := b.imageExists(context.Background(), r); exists {
+					t.Errorf("image:%s %s should not exists", c.image, r)
+				}
+
 			}
 		}
 		removeDockerImage(c.image)
