@@ -208,8 +208,7 @@ func (b *Docker) addRegistryAuth(domain string, auth *types.AuthConfig) error {
 		return nil
 	}
 
-	_, ok := b.fetchAuth(domain)
-	if ok {
+	if _, ok := b.fetchAuth(domain); ok {
 		b.log.Infof("an auth for %s already exists", domain)
 		return nil
 	}
