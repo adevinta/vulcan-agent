@@ -257,15 +257,22 @@ func (b *Docker) getRegistryAuth(domain string) *types.AuthConfig {
 	if ok {
 		return auth
 	}
-	if auth = b.getStoredCredentials(domain); auth != nil {
-		if err := b.addRegistryAuth(domain, auth); err == nil {
-			return auth
-		}
+
+	auth = b.getStoredCredentials(domain)
+	if auth == nil {
+		// Store nil to prevent trying again for this domain.
+		b.storeAuth(domain, nil)
+		return nil
 	}
 
-	// Store nil to prevent trying again for this domain.
-	b.storeAuth(domain, nil)
-	return nil
+	// Validate the credentials
+	if err := b.addRegistryAuth(domain, auth); err != nil {
+		// Store nil to prevent trying again for this domain.
+		b.storeAuth(domain, nil)
+		return nil
+	}
+
+	return auth
 }
 
 func (b *Docker) getStoredCredentials(domain string) *types.AuthConfig {
