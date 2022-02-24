@@ -474,7 +474,7 @@ func (b *Docker) pull(ctx context.Context, image string) error {
 		}
 		return nil
 	})
-	b.log.Infof("Pulled image=%s domain=%s auth=%v time=%s err=%v", image, domain, pullOpts.RegistryAuth != "", time.Since(start), err)
+	b.log.Infof("Pulled image=%s domain=%s auth=%v time=%s err=%v", image, domain, pullOpts.RegistryAuth != "", int(time.Since(start).Seconds()), err)
 	return err
 }
 
