@@ -288,7 +288,7 @@ func (b *Docker) getStoredCredentials(domain string) *types.AuthConfig {
 		return nil
 	}
 
-	// Copy all the data (same struct indifferent packages)
+	// Copy all the data (same struct in different packages).
 	return &types.AuthConfig{
 		Username:      a.Username,
 		Password:      a.Password,
@@ -406,9 +406,9 @@ func (b *Docker) imageExists(ctx context.Context, image string) (bool, error) {
 		return false, err
 	}
 
-	// Build a pattern with the tag to prevent returning all the tags from the image
+	// Build a pattern with the tag to prevent returning all the tags from the image.
 	pattern := domain + "/" + path + ":" + tag
-	// We remove docker.io because ImageList doesn't find images with prefix docker.io
+	// We remove docker.io because ImageList doesn't find images with prefix docker.io.
 	if domain == "docker.io" {
 		pattern = path + ":" + tag
 	}
@@ -469,7 +469,14 @@ func (b *Docker) pull(ctx context.Context, image string) error {
 		}
 		return nil
 	})
-	b.log.Infof("pulled image=%s domain=%s auth=%v time=%d err=%v", image, domain, pullOpts.RegistryAuth != "", int(time.Since(start).Seconds()), err)
+	b.log.Infof(
+		"pulled image=%s domain=%s auth=%v time=%d err=%v",
+		image,
+		domain,
+		pullOpts.RegistryAuth != "",
+		int(time.Since(start).Seconds()),
+		err,
+	)
 	return err
 }
 
