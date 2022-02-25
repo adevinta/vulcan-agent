@@ -14,7 +14,6 @@ import (
 	"io"
 	"io/ioutil"
 	"net"
-	"strings"
 	"sync"
 	"time"
 
@@ -60,6 +59,35 @@ type Retryer interface {
 	WithRetries(op string, exec func() error) error
 }
 
+type registryAuths struct {
+	auths map[string]*types.AuthConfig
+	mu    sync.RWMutex
+}
+
+func (b *registryAuths) fetchAuth(domain string) (*types.AuthConfig, bool) {
+	domain = getAuthDomain(domain)
+
+	b.mu.RLock()
+	defer b.mu.RUnlock()
+	auth, ok := b.auths[domain]
+	return auth, ok
+}
+
+func (b *registryAuths) storeAuth(domain string, auth *types.AuthConfig) {
+	domain = getAuthDomain(domain)
+
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	b.auths[domain] = auth
+}
+
+func getAuthDomain(domain string) string {
+	if domain == "docker.io" {
+		return "index.docker.io"
+	}
+	return domain
+}
+
 // Docker implements a docker backend for runing jobs if the local docker.
 type Docker struct {
 	config    config.RegistryConfig
@@ -69,8 +97,7 @@ type Docker struct {
 	cli       *client.Client
 	retryer   Retryer
 	updater   ConfigUpdater
-	auths     map[string]*types.AuthConfig
-	mu        sync.RWMutex
+	auths     registryAuths
 }
 
 // getAgentAddr returns the current address of the agent API from the Docker network.
@@ -109,18 +136,6 @@ func getAgentAddr(port, ifaceName string) (string, error) {
 	return "", errors.New("failed to determine Docker agent IP address")
 }
 
-func validateEnum(value string, options []string, defaultValue string) (string, error) {
-	if value == "" {
-		value = defaultValue
-	}
-	for _, o := range options {
-		if strings.EqualFold(value, o) {
-			return o, nil
-		}
-	}
-	return "", fmt.Errorf("invalid value=%v allowed=%v", value, options)
-}
-
 // NewBackend creates a new Docker backend using the given config, agent api addres and CheckVars.
 // A ConfigUpdater function can be passed to inspect/update the final docker RunConfig
 // before creating the container for each check.
@@ -156,7 +171,7 @@ func NewBackend(log log.Logger, cfg config.Config, updater ConfigUpdater) (backe
 		cli:       envCli,
 		retryer:   re,
 		updater:   updater,
-		auths:     make(map[string]*types.AuthConfig),
+		auths:     registryAuths{},
 	}
 
 	if b.config.Auths == nil {
@@ -195,7 +210,7 @@ func (b *Docker) addRegistryAuth(domain string, auth *types.AuthConfig) error {
 		return nil
 	}
 
-	if _, ok := b.fetchAuth(domain); ok {
+	if _, ok := b.auths.fetchAuth(domain); ok {
 		b.log.Infof("an auth for %s already exists", domain)
 		return nil
 	}
@@ -208,40 +223,16 @@ func (b *Docker) addRegistryAuth(domain string, auth *types.AuthConfig) error {
 	}
 
 	b.log.Infof("Auth validated for %s %s with %s", domain, auth.ServerAddress, auth.Username)
-	b.storeAuth(domain, auth)
+	b.auths.storeAuth(domain, auth)
 
 	return nil
-}
-
-func (b *Docker) fetchAuth(domain string) (*types.AuthConfig, bool) {
-	domain = getAuthDomain(domain)
-
-	b.mu.RLock()
-	defer b.mu.RUnlock()
-	auth, ok := b.auths[domain]
-	return auth, ok
-}
-
-func (b *Docker) storeAuth(domain string, auth *types.AuthConfig) {
-	domain = getAuthDomain(domain)
-
-	b.mu.Lock()
-	defer b.mu.Unlock()
-	b.auths[domain] = auth
-}
-
-func getAuthDomain(domain string) string {
-	if domain == "docker.io" {
-		return "index.docker.io"
-	}
-	return domain
 }
 
 // getRegistryAuth tries to find an authentication for the domain
 // First it looks into the provided authenticated servers
 // If not avialiable it looks into the docker system stored credentials.
 func (b *Docker) getRegistryAuth(domain string) *types.AuthConfig {
-	auth, ok := b.fetchAuth(domain)
+	auth, ok := b.auths.fetchAuth(domain)
 	if ok {
 		return auth
 	}
@@ -249,14 +240,14 @@ func (b *Docker) getRegistryAuth(domain string) *types.AuthConfig {
 	auth = b.getStoredCredentials(domain)
 	if auth == nil {
 		// Store nil to prevent trying again for this domain.
-		b.storeAuth(domain, nil)
+		b.auths.storeAuth(domain, nil)
 		return nil
 	}
 
 	// Validate the credentials
 	if err := b.addRegistryAuth(domain, auth); err != nil {
 		// Store nil to prevent trying again for this domain.
-		b.storeAuth(domain, nil)
+		b.auths.storeAuth(domain, nil)
 		return nil
 	}
 
