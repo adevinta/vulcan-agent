@@ -5,6 +5,7 @@ Copyright 2019 Adevinta
 package config
 
 import (
+	"fmt"
 	"io/ioutil"
 
 	"github.com/BurntSushi/toml"
@@ -100,14 +101,14 @@ type Auth struct {
 
 // RegistryConfig defines the configuration for the Docker registry.
 type RegistryConfig struct {
-	Auths               []Auth  `toml:"auths"`
-	Server              string  `toml:"server"`
-	User                string  `toml:"user"`
-	Pass                string  `toml:"pass"`
-	BackoffInterval     int     `toml:"backoff_interval"`
-	BackoffMaxRetries   int     `toml:"backoff_max_retries"`
-	BackoffJitterFactor float64 `toml:"backoff_jitter_factor"`
-	PullPolicy          string  `toml:"pull_policy"`
+	Auths               []Auth     `toml:"auths"`
+	Server              string     `toml:"server"`
+	User                string     `toml:"user"`
+	Pass                string     `toml:"pass"`
+	BackoffInterval     int        `toml:"backoff_interval"`
+	BackoffMaxRetries   int        `toml:"backoff_max_retries"`
+	BackoffJitterFactor float64    `toml:"backoff_jitter_factor"`
+	PullPolicy          PullPolicy `toml:"pull_policy"`
 }
 
 // KubernetesConfig defines the configuration for the Kubernetes runtime environment.
@@ -156,4 +157,54 @@ func ReadConfig(configFile string) (Config, error) {
 	}
 
 	return config, nil
+}
+
+type PullPolicy int
+
+const (
+	PullPolicyIfNotPresent PullPolicy = iota
+	PullPolicyAlways
+	PullPolicyNever
+)
+
+var pullPolicyStrings = map[PullPolicy]string{
+	PullPolicyAlways:       "Always",
+	PullPolicyIfNotPresent: "IfNotPresent",
+	PullPolicyNever:        "Never",
+}
+
+// MarshalText returns string representation of a PullPolicy instance.
+func (a *PullPolicy) MarshalText() (text []byte, err error) {
+	s, err := a.String()
+	if err != nil {
+		return nil, err
+	}
+	return []byte(s), nil
+}
+
+// UnmarshalText creates a PullPolicy from its string representation.
+func (a *PullPolicy) UnmarshalText(text []byte) error {
+	val := string(text)
+	for k, v := range pullPolicyStrings {
+		if v == val {
+			*a = k
+			return nil
+		}
+	}
+	return fmt.Errorf("error value %s is not a valid PullPolicy value", val)
+}
+
+func PullPolicies() []string {
+	s := []string{}
+	for _, v := range pullPolicyStrings {
+		s = append(s, v)
+	}
+	return s
+}
+
+func (a *PullPolicy) String() (string, error) {
+	if _, ok := pullPolicyStrings[*a]; !ok {
+		return "", fmt.Errorf("value: %d is not a valid string representation of PullPolicy", a)
+	}
+	return pullPolicyStrings[*a], nil
 }

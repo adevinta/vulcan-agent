@@ -51,7 +51,7 @@ func TestIntegrationDockerRun(t *testing.T) {
 				}
 				b := &Docker{
 					config: config.RegistryConfig{
-						PullPolicy: PullPolicyNever,
+						PullPolicy: config.PullPolicyNever,
 					},
 					agentAddr: "an addr",
 					log:       &log.NullLog{},
@@ -126,7 +126,7 @@ func TestIntegrationDockerRunKillContainer(t *testing.T) {
 
 	b := &Docker{
 		config: config.RegistryConfig{
-			PullPolicy: PullPolicyNever,
+			PullPolicy: config.PullPolicyNever,
 		},
 		agentAddr: "an addr",
 		log:       &log.NullLog{},
@@ -184,7 +184,7 @@ func TestIntegrationDockerDetectUnexpectedExit(t *testing.T) {
 
 	b := &Docker{
 		config: config.RegistryConfig{
-			PullPolicy: PullPolicyNever,
+			PullPolicy: config.PullPolicyNever,
 		},
 		agentAddr: "an addr",
 		log:       &log.NullLog{},
@@ -235,7 +235,7 @@ func TestIntegrationDockerRunAbortGracefully(t *testing.T) {
 	}
 	b := &Docker{
 		config: config.RegistryConfig{
-			PullPolicy: PullPolicyNever,
+			PullPolicy: config.PullPolicyNever,
 		},
 		agentAddr: "an addr",
 		log:       &log.NullLog{},
@@ -295,7 +295,7 @@ func TestIntegrationDockerFindImage(t *testing.T) {
 	}
 	b := &Docker{
 		config: config.RegistryConfig{
-			PullPolicy: PullPolicyNever,
+			PullPolicy: config.PullPolicyNever,
 		},
 		agentAddr: "an addr",
 		log:       &log.NullLog{},

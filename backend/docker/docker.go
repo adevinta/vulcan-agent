@@ -36,14 +36,6 @@ import (
 const abortTimeout = 5 * time.Second
 const defaultDockerIfaceName = "docker0"
 
-const (
-	PullPolicyAlways       = "Always"
-	PullPolicyIfNotPresent = "IfNotPresent"
-	PullPolicyNever        = "Never"
-)
-
-var PullPolicies = []string{PullPolicyAlways, PullPolicyIfNotPresent, PullPolicyNever}
-
 // RunConfig contains the configuration for executing a check in a container.
 type RunConfig struct {
 	ContainerConfig       *container.Config
@@ -165,10 +157,6 @@ func NewBackend(log log.Logger, cfg config.Config, updater ConfigUpdater) (backe
 		retryer:   re,
 		updater:   updater,
 		auths:     make(map[string]*types.AuthConfig),
-	}
-
-	if b.config.PullPolicy, err = validateEnum(b.config.PullPolicy, PullPolicies, PullPolicyIfNotPresent); err != nil {
-		return &Docker{}, err
 	}
 
 	if b.config.Auths == nil {
@@ -441,10 +429,10 @@ func (b *Docker) imageExists(ctx context.Context, image string) (bool, error) {
 }
 
 func (b *Docker) pull(ctx context.Context, image string) error {
-	if strings.EqualFold(b.config.PullPolicy, PullPolicyNever) {
+	if b.config.PullPolicy == config.PullPolicyNever {
 		return nil
 	}
-	if strings.EqualFold(b.config.PullPolicy, PullPolicyIfNotPresent) {
+	if b.config.PullPolicy == config.PullPolicyIfNotPresent {
 		exists, err := b.imageExists(ctx, image)
 		if err != nil {
 			return err
