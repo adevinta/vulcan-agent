@@ -467,7 +467,7 @@ func (b *Docker) pull(ctx context.Context, image string) error {
 		}
 		pullOpts.RegistryAuth = base64.URLEncoding.EncodeToString(buf)
 	}
-	b.log.Debugf("Pulling image=%s domain=%s auth=%v", image, domain, pullOpts.RegistryAuth != "")
+	b.log.Debugf("pulling image=%s domain=%s auth=%v", image, domain, pullOpts.RegistryAuth != "")
 	start := time.Now()
 	err = b.retryer.WithRetries("PullDockerImage", func() error {
 		respBody, err := b.cli.ImagePull(ctx, image, pullOpts)
@@ -480,7 +480,7 @@ func (b *Docker) pull(ctx context.Context, image string) error {
 		}
 		return nil
 	})
-	b.log.Infof("Pulled image=%s domain=%s auth=%v time=%s err=%v", image, domain, pullOpts.RegistryAuth != "", int(time.Since(start).Seconds()), err)
+	b.log.Infof("pulled image=%s domain=%s auth=%v time=%d err=%v", image, domain, pullOpts.RegistryAuth != "", int(time.Since(start).Seconds()), err)
 	return err
 }
 
