@@ -7,6 +7,9 @@ package backend
 import (
 	"context"
 	"errors"
+	"strings"
+
+	"github.com/docker/distribution/reference"
 )
 
 // Constants defining environment variables that a check expects.
@@ -59,4 +62,25 @@ type APIConfig struct {
 // Backend defines the shape of the backend that executes checks.
 type Backend interface {
 	Run(ctx context.Context, params RunParams) (<-chan RunResult, error)
+}
+
+// ParseImage validates and enrich the image with domain (docker.io if domain missing), tag (latest if missing),
+func ParseImage(image string) (domain, path, tag string, err error) {
+	named, err := reference.ParseNormalizedNamed(image)
+	if err != nil {
+		return
+	}
+	// add latests if tag is missing
+	named = reference.TagNameOnly(named)
+	domain = reference.Domain(named)
+	path = reference.Path(named)
+	tagged, isTagged := named.(reference.Tagged)
+	if domain == "docker.io" {
+		// Ignore docker.io and "library/" as we don't expect a check in docker.io/library.
+		path = strings.TrimPrefix(path, "library/")
+	}
+	if isTagged {
+		tag = tagged.Tag()
+	}
+	return
 }

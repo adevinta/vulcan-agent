@@ -29,7 +29,6 @@ import (
 
 	"github.com/adevinta/vulcan-agent/backend"
 	"github.com/adevinta/vulcan-agent/config"
-	"github.com/adevinta/vulcan-agent/jobrunner"
 	"github.com/adevinta/vulcan-agent/log"
 	"github.com/adevinta/vulcan-agent/retryer"
 )
@@ -175,7 +174,7 @@ func NewBackend(log log.Logger, cfg config.Config, updater ConfigUpdater) (backe
 	if b.config.Auths == nil {
 		b.config.Auths = []config.Auth{}
 	}
-	// Add the legacy single registry auth to the slice
+	// Add the legacy single registry auth to the slice.
 	if b.config.Server != "" {
 		b.config.Auths = append(b.config.Auths, config.Auth{
 			Server: b.config.Server,
@@ -192,7 +191,7 @@ func NewBackend(log log.Logger, cfg config.Config, updater ConfigUpdater) (backe
 			ServerAddress: a.Server,
 		}
 
-		// This prevents the agent to start with wrong supplied credentials
+		// This prevents the agent to start with wrong supplied credentials.
 		if err = b.addRegistryAuth(auth.ServerAddress, auth); err != nil {
 			log.Errorf("unable to login in %s: %+v", a.Server, err)
 			return nil, err
@@ -201,7 +200,7 @@ func NewBackend(log log.Logger, cfg config.Config, updater ConfigUpdater) (backe
 	return b, nil
 }
 
-// addRegistryAuth adds the auth to the map only if valid
+// addRegistryAuth adds the auth to the map only if valid.
 func (b *Docker) addRegistryAuth(domain string, auth *types.AuthConfig) error {
 	if domain == "" {
 		b.log.Debugf("skipping to validate empty auth")
@@ -214,7 +213,9 @@ func (b *Docker) addRegistryAuth(domain string, auth *types.AuthConfig) error {
 	}
 
 	if _, err := b.cli.RegistryLogin(context.Background(), *auth); err != nil {
-		b.log.Errorf("wrong credentials provided for %s %s error=%+v", domain, auth.ServerAddress, err)
+		b.log.Errorf("wrong credentials provided for %s %s error=%+v",
+			domain, auth.ServerAddress, err,
+		)
 		return err
 	}
 
@@ -412,7 +413,7 @@ func (b *Docker) getContainerlogs(ID string) ([]byte, error) {
 }
 
 func (b *Docker) imageExists(ctx context.Context, image string) (bool, error) {
-	domain, path, tag, err := jobrunner.ParseImage(image)
+	domain, path, tag, err := backend.ParseImage(image)
 	if err != nil {
 		return false, err
 	}
@@ -455,7 +456,7 @@ func (b *Docker) pull(ctx context.Context, image string) error {
 	pullOpts := types.ImagePullOptions{}
 
 	// Image was validated before and ParseImage always return a domain.
-	domain, _, _, err := jobrunner.ParseImage(image)
+	domain, _, _, err := backend.ParseImage(image)
 	if err != nil {
 		return err
 	}

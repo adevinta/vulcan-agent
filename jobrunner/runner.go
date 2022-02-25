@@ -9,7 +9,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"strings"
 	"sync"
 	"time"
 
@@ -17,7 +16,6 @@ import (
 	"github.com/adevinta/vulcan-agent/log"
 	"github.com/adevinta/vulcan-agent/queue"
 	"github.com/adevinta/vulcan-agent/stateupdater"
-	"github.com/docker/distribution/reference"
 )
 
 var (
@@ -384,7 +382,7 @@ func (cr *Runner) ChecksRunning() int {
 
 // getChecktypeInfo extracts checktype data from a Docker image URI.
 func getChecktypeInfo(imageURI string) (checktypeName string, checktypeVersion string, err error) {
-	domain, path, tag, err := ParseImage(imageURI)
+	domain, path, tag, err := backend.ParseImage(imageURI)
 	if err != nil {
 		err = fmt.Errorf("unable to parse image %s - %w", imageURI, err)
 		return
@@ -394,26 +392,5 @@ func getChecktypeInfo(imageURI string) (checktypeName string, checktypeVersion s
 		checktypeName = path
 	}
 	checktypeVersion = tag
-	return
-}
-
-// ParseImage validates and enrich the image with domain (docker.io if domain missing), tag (latest if missing),
-func ParseImage(image string) (domain, path, tag string, err error) {
-	named, err := reference.ParseNormalizedNamed(image)
-	if err != nil {
-		return
-	}
-	// add latests if tag is missing
-	named = reference.TagNameOnly(named)
-	domain = reference.Domain(named)
-	path = reference.Path(named)
-	tagged, isTagged := named.(reference.Tagged)
-	if domain == "docker.io" {
-		// Ignore docker.io and "library/" as we don't expect a check in docker.io/library.
-		path = strings.TrimPrefix(path, "library/")
-	}
-	if isTagged {
-		tag = tagged.Tag()
-	}
 	return
 }
