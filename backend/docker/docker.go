@@ -171,7 +171,9 @@ func NewBackend(log log.Logger, cfg config.Config, updater ConfigUpdater) (backe
 		cli:       envCli,
 		retryer:   re,
 		updater:   updater,
-		auths:     registryAuths{},
+		auths: registryAuths{
+			auths: make(map[string]*types.AuthConfig),
+		},
 	}
 
 	if b.config.Auths == nil {
