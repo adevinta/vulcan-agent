@@ -374,7 +374,7 @@ func (b *Docker) run(ctx context.Context, params backend.RunParams, res chan<- b
 	res <- backend.RunResult{Output: out, Error: err}
 }
 
-func (b *Docker) getContainerlogs(ID string) ([]byte, error) {
+func (b Docker) getContainerlogs(ID string) ([]byte, error) {
 	logOpts := types.ContainerLogsOptions{
 		ShowStdout: true,
 		ShowStderr: true,
