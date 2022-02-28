@@ -463,11 +463,11 @@ func (b *Docker) pull(ctx context.Context, image string) error {
 		return nil
 	})
 	b.log.Infof(
-		"pulled image=%s domain=%s auth=%v time=%d err=%v",
+		"pulled image=%s domain=%s auth=%v duration=%f err=%v",
 		image,
 		domain,
 		pullOpts.RegistryAuth != "",
-		int(time.Since(start).Seconds()),
+		time.Since(start).Seconds(),
 		err,
 	)
 	return err
