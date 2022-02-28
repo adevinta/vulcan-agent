@@ -18,19 +18,15 @@ type Logger interface {
 	Errorf(format string, args ...interface{})
 }
 
-type NullLog struct {
-}
+type NullLog struct{}
 
 func (n *NullLog) Debugf(format string, args ...interface{}) {
-
 }
 
 func (n *NullLog) Infof(format string, args ...interface{}) {
-
 }
 
 func (n *NullLog) Errorf(format string, args ...interface{}) {
-
 }
 
 // Log implements the default logger.
@@ -54,7 +50,7 @@ func New(cfg config.AgentConfig) (Logger, error) {
 	}
 	logger.Out = os.Stdout
 	if cfg.LogFile != "" {
-		logFile, err := os.OpenFile(cfg.LogFile, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0600)
+		logFile, err := os.OpenFile(cfg.LogFile, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0o600)
 		if err != nil {
 			logger.Errorf("error opening log file: %v", err)
 			return nil, err

@@ -15,7 +15,6 @@ import (
 )
 
 func main() {
-
 	if len(os.Args) < 2 {
 		fmt.Fprint(os.Stderr, "Usage: vulcan-agent config_file")
 		os.Exit(1)

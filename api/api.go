@@ -9,10 +9,9 @@ import (
 	"fmt"
 	"time"
 
-	report "github.com/adevinta/vulcan-report"
-
 	"github.com/adevinta/vulcan-agent/log"
 	"github.com/adevinta/vulcan-agent/stateupdater"
+	report "github.com/adevinta/vulcan-report"
 )
 
 var (
@@ -26,7 +25,7 @@ var (
 )
 
 // CheckState holds the values related to the state of a check. The values
-// defined here the one written to the check states queue
+// defined here the one written to the check states queue.
 type CheckState struct {
 	ID       string
 	Report   *report.Report `json:"report,omitempty"`
@@ -83,7 +82,6 @@ func (a *API) CheckUpdate(c CheckState) error {
 		err := ErrCheckIDMandatory
 		a.log.Errorf("%+v", err)
 		return err
-
 	}
 	var rlink *string
 	if c.Report != nil {

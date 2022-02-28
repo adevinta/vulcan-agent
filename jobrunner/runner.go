@@ -25,7 +25,7 @@ var (
 
 	// ErrCheckWithSameID is returned when the runner is about to run a check
 	// with and ID equal to the ID of an already running check.
-	ErrCheckWithSameID = errors.New("check with a same ID is already runing")
+	ErrCheckWithSameID = errors.New("check with a same ID is already running")
 
 	// DefaultMaxMessageProcessedTimes defines the maximun number of times the
 	// processor tries to processe a checks message before it declares the check
@@ -76,7 +76,7 @@ func (c *checkAborter) AbortAll() {
 // Running returns the number the checks that are in a given point of time being
 // tracked by the Aborter component. In other words the number of checks
 // running.
-func (c *checkAborter) Runing() int {
+func (c *checkAborter) Running() int {
 	count := 0
 	c.cancels.Range(func(_, v interface{}) bool {
 		count++
@@ -127,7 +127,7 @@ type RunnerConfig struct {
 // jobs that the Runner can execute at the same time.
 func New(logger log.Logger, backend backend.Backend, checkUpdater CheckStateUpdater,
 	aborted AbortedChecks, cfg RunnerConfig) *Runner {
-	var tokens = make(chan interface{}, cfg.MaxTokens)
+	tokens := make(chan interface{}, cfg.MaxTokens)
 	for i := 0; i < cfg.MaxTokens; i++ {
 		tokens <- token{}
 	}
@@ -171,7 +171,7 @@ func (cr *Runner) FreeTokens() chan interface{} {
 // message if processed the channel returned will indicate if the message must
 // be deleted or not.
 func (cr *Runner) ProcessMessage(msg queue.Message, token interface{}) <-chan bool {
-	var processed = make(chan bool, 1)
+	processed := make(chan bool, 1)
 	go cr.runJob(msg, token, processed)
 	return processed
 }
@@ -309,7 +309,7 @@ func (cr *Runner) runJob(m queue.Message, t interface{}, processed chan bool) {
 			return
 		}
 	}
-	// Check if the backend returned any not expected error while runing the check.
+	// Check if the backend returned any not expected error while running the check.
 	execErr := res.Error
 	if execErr != nil &&
 		!errors.Is(execErr, context.DeadlineExceeded) &&
@@ -367,7 +367,7 @@ func (cr *Runner) finishJob(checkID string, processed chan<- bool, delete bool, 
 	select {
 	case cr.Tokens <- token{}:
 	default:
-		cr.Logger.Errorf("error, unexpected lock when writting to the tokens channel")
+		cr.Logger.Errorf("error, unexpected lock when writing to the tokens channel")
 	}
 	// Signal the caller that the job related to a message is finalized. It also
 	// states if the message related to the job must be deleted or not.
@@ -377,7 +377,7 @@ func (cr *Runner) finishJob(checkID string, processed chan<- bool, delete bool, 
 
 // ChecksRunning returns the current number of checks running.
 func (cr *Runner) ChecksRunning() int {
-	return cr.cAborter.Runing()
+	return cr.cAborter.Running()
 }
 
 // getChecktypeInfo extracts checktype data from a Docker image URI.

@@ -10,16 +10,13 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/gorilla/websocket"
-
 	"github.com/adevinta/vulcan-agent/log"
+	"github.com/gorilla/websocket"
 )
 
-var (
-	// ReadTimeout specifies the time, in seconds, the streams wait for reading
-	// the next message.
-	ReadTimeout = 5
-)
+// ReadTimeout specifies the time, in seconds, the streams wait for reading
+// the next message.
+var ReadTimeout = 5
 
 type readMessageResult struct {
 	Error   error
@@ -32,7 +29,7 @@ type Retryer interface {
 	WithRetries(op string, exec func() error) error
 }
 
-// Message describes a stream message
+// Message describes a stream message.
 type Message struct {
 	CheckID string `json:"check_id,omitempty"`
 	AgentID string `json:"agent_id,omitempty"`
@@ -73,7 +70,7 @@ func (s *Stream) ListenAndProcess(ctx context.Context) (<-chan error, error) {
 	if err != nil {
 		return nil, err
 	}
-	var done = make(chan error, 1)
+	done := make(chan error, 1)
 	go s.listenAndProcess(ctx, conn, done)
 	return done, nil
 }
@@ -131,12 +128,12 @@ func (s *Stream) reconnect(ctx context.Context) (*websocket.Conn, error) {
 }
 
 func (s *Stream) readMessage(conn *websocket.Conn) <-chan readMessageResult {
-	var read = make(chan readMessageResult)
+	read := make(chan readMessageResult)
 	go func() {
 		nextTime := time.Now()
 		nextTime = nextTime.Add(time.Second * time.Duration(ReadTimeout))
 		conn.SetReadDeadline(nextTime)
-		var msg = new(Message)
+		msg := new(Message)
 		err := conn.ReadJSON(msg)
 		read <- readMessageResult{Error: err, Message: *msg}
 		close(read)

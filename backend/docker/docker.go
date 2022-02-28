@@ -17,23 +17,23 @@ import (
 	"sync"
 	"time"
 
+	"github.com/adevinta/vulcan-agent/backend"
+	"github.com/adevinta/vulcan-agent/config"
+	"github.com/adevinta/vulcan-agent/log"
+	"github.com/adevinta/vulcan-agent/retryer"
 	dockercliconfig "github.com/docker/cli/cli/config"
-
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/api/types/network"
 	"github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/stdcopy"
-
-	"github.com/adevinta/vulcan-agent/backend"
-	"github.com/adevinta/vulcan-agent/config"
-	"github.com/adevinta/vulcan-agent/log"
-	"github.com/adevinta/vulcan-agent/retryer"
 )
 
-const abortTimeout = 5 * time.Second
-const defaultDockerIfaceName = "docker0"
+const (
+	abortTimeout           = 5 * time.Second
+	defaultDockerIfaceName = "docker0"
+)
 
 // RunConfig contains the configuration for executing a check in a container.
 type RunConfig struct {
@@ -88,7 +88,7 @@ func getAuthDomain(domain string) string {
 	return domain
 }
 
-// Docker implements a docker backend for runing jobs if the local docker.
+// Docker implements a docker backend for running jobs if the local docker.
 type Docker struct {
 	config    config.RegistryConfig
 	agentAddr string
@@ -136,7 +136,7 @@ func getAgentAddr(port, ifaceName string) (string, error) {
 	return "", errors.New("failed to determine Docker agent IP address")
 }
 
-// NewBackend creates a new Docker backend using the given config, agent api addres and CheckVars.
+// NewBackend creates a new Docker backend using the given config, agent api address and CheckVars.
 // A ConfigUpdater function can be passed to inspect/update the final docker RunConfig
 // before creating the container for each check.
 func NewBackend(log log.Logger, cfg config.Config, updater ConfigUpdater) (backend.Backend, error) {
@@ -296,7 +296,7 @@ func (b *Docker) Run(ctx context.Context, params backend.RunParams) (<-chan back
 	if err != nil {
 		return nil, err
 	}
-	var res = make(chan backend.RunResult)
+	res := make(chan backend.RunResult)
 	go b.run(ctx, params, res)
 	return res, nil
 }

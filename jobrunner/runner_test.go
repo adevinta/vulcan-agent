@@ -51,6 +51,7 @@ type CheckRaw struct {
 	CheckID   string
 	StartTime time.Time
 }
+
 type inMemChecksUpdater struct {
 	updates []stateupdater.CheckState
 	raws    []CheckRaw
@@ -90,7 +91,6 @@ func (im *inMemChecksUpdater) CheckStatusTerminal(ID string) bool {
 }
 
 func (im *inMemChecksUpdater) DeleteCheckStatusTerminal(ID string) {
-
 }
 
 type mockChecksUpdater struct {
@@ -166,7 +166,7 @@ func TestRunner_ProcessMessage(t *testing.T) {
 			fields: fields{
 				Backend: &mockBackend{
 					CheckRunner: func(ctx context.Context, params backend.RunParams) (<-chan backend.RunResult, error) {
-						var res = make(chan backend.RunResult)
+						res := make(chan backend.RunResult)
 						go func() {
 							output, err := json.Marshal(params)
 							if err != nil {
@@ -243,7 +243,7 @@ func TestRunner_ProcessMessage(t *testing.T) {
 			fields: fields{
 				Backend: &mockBackend{
 					CheckRunner: func(ctx context.Context, params backend.RunParams) (<-chan backend.RunResult, error) {
-						var res = make(chan backend.RunResult)
+						res := make(chan backend.RunResult)
 						go func() {
 							output, err := json.Marshal(params)
 							if err != nil {
@@ -313,7 +313,7 @@ func TestRunner_ProcessMessage(t *testing.T) {
 			fields: fields{
 				Backend: &mockBackend{
 					CheckRunner: func(ctx context.Context, params backend.RunParams) (<-chan backend.RunResult, error) {
-						var res = make(chan backend.RunResult)
+						res := make(chan backend.RunResult)
 						go func() {
 							results := backend.RunResult{
 								Error: errUnexpectedTest,
@@ -356,7 +356,7 @@ func TestRunner_ProcessMessage(t *testing.T) {
 			fields: fields{
 				Backend: &mockBackend{
 					CheckRunner: func(ctx context.Context, params backend.RunParams) (<-chan backend.RunResult, error) {
-						var res = make(chan backend.RunResult)
+						res := make(chan backend.RunResult)
 						go func() {
 							output, err := json.Marshal(params)
 							if err != nil {
@@ -430,7 +430,7 @@ func TestRunner_ProcessMessage(t *testing.T) {
 			fields: fields{
 				Backend: &mockBackend{
 					CheckRunner: func(ctx context.Context, params backend.RunParams) (<-chan backend.RunResult, error) {
-						var res = make(chan backend.RunResult)
+						res := make(chan backend.RunResult)
 						go func() {
 							output, err := json.Marshal(params)
 							if err != nil {
@@ -504,7 +504,7 @@ func TestRunner_ProcessMessage(t *testing.T) {
 			fields: fields{
 				Backend: &mockBackend{
 					CheckRunner: func(ctx context.Context, params backend.RunParams) (<-chan backend.RunResult, error) {
-						var res = make(chan backend.RunResult)
+						res := make(chan backend.RunResult)
 						go func() {
 							output, err := json.Marshal(params)
 							if err != nil {
@@ -562,7 +562,7 @@ func TestRunner_ProcessMessage(t *testing.T) {
 			fields: fields{
 				Backend: &mockBackend{
 					CheckRunner: func(ctx context.Context, params backend.RunParams) (<-chan backend.RunResult, error) {
-						var res = make(chan backend.RunResult)
+						res := make(chan backend.RunResult)
 						go func() {
 							output, err := json.Marshal(params)
 							if err != nil {
@@ -598,7 +598,6 @@ func TestRunner_ProcessMessage(t *testing.T) {
 						return false
 					},
 					checkTerminalDeleter: func(string) {
-
 					},
 				},
 			},
@@ -619,7 +618,7 @@ func TestRunner_ProcessMessage(t *testing.T) {
 			fields: fields{
 				Backend: &mockBackend{
 					CheckRunner: func(ctx context.Context, params backend.RunParams) (<-chan backend.RunResult, error) {
-						var res = make(chan backend.RunResult)
+						res := make(chan backend.RunResult)
 						go func() {
 							results := backend.RunResult{
 								Output: []byte("logs"),
@@ -675,7 +674,7 @@ func TestRunner_ProcessMessage(t *testing.T) {
 			fields: fields{
 				Backend: &mockBackend{
 					CheckRunner: func(ctx context.Context, params backend.RunParams) (<-chan backend.RunResult, error) {
-						var res = make(chan backend.RunResult)
+						res := make(chan backend.RunResult)
 						go func() {
 							output, err := json.Marshal(params)
 							if err != nil {
@@ -732,7 +731,7 @@ func TestRunner_ProcessMessage(t *testing.T) {
 			fields: fields{
 				Backend: &mockBackend{
 					CheckRunner: func(ctx context.Context, params backend.RunParams) (<-chan backend.RunResult, error) {
-						var res = make(chan backend.RunResult)
+						res := make(chan backend.RunResult)
 						go func() {
 							output, err := json.Marshal(params)
 							if err != nil {
@@ -821,7 +820,6 @@ func TestRunner_ProcessMessage(t *testing.T) {
 			if stateDiff != "" {
 				t.Fatalf("want state!=got state, diff %s", stateDiff)
 			}
-
 		})
 	}
 }

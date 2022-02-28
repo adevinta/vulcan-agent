@@ -13,11 +13,9 @@ import (
 	"github.com/lestrrat-go/backoff"
 )
 
-var (
-	// ErrPermanent defines an error that when returned by an operation
-	// shortcircuits the retries process.
-	ErrPermanent = errors.New("permanet error")
-)
+// ErrPermanent defines an error that when returned by an operation
+// shortcircuits the retries process.
+var ErrPermanent = errors.New("permanent error")
 
 // Retryer allows to execute operations using a retries with exponential backoff
 // and optionally a shortcircuit function.

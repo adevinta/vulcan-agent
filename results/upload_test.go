@@ -48,10 +48,10 @@ func buildMockReportServer() (*httptest.Server, *[]ReportData, *[]RawData) {
 			status = http.StatusInternalServerError
 		}
 		w.WriteHeader(status)
-
 	})
 	return httptest.NewServer(h), reports, raws
 }
+
 func TestUploader_UpdateCheckRaw(t *testing.T) {
 	type args struct {
 		checkID       string

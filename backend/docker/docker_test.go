@@ -14,15 +14,14 @@ import (
 	"testing"
 	"time"
 
+	"github.com/adevinta/vulcan-agent/backend"
+	"github.com/adevinta/vulcan-agent/config"
+	"github.com/adevinta/vulcan-agent/log"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/client"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/uuid"
-
-	"github.com/adevinta/vulcan-agent/backend"
-	"github.com/adevinta/vulcan-agent/config"
-	"github.com/adevinta/vulcan-agent/log"
 )
 
 func TestIntegrationDockerRun(t *testing.T) {
@@ -110,7 +109,6 @@ func TestIntegrationDockerRun(t *testing.T) {
 			if diff != "" {
 				t.Errorf("got!=want, diff %s", diff)
 			}
-
 		})
 	}
 }
@@ -360,7 +358,6 @@ func TestIntegrationDockerFindImage(t *testing.T) {
 
 		// Validate against all the references
 		for _, r := range refs {
-
 			valid := false
 			for _, v := range c.valids {
 				if v == r {
@@ -374,7 +371,6 @@ func TestIntegrationDockerFindImage(t *testing.T) {
 				if exists, _ := b.imageExists(context.Background(), r); exists {
 					t.Errorf("image:%s %s should not exists", c.image, r)
 				}
-
 			}
 		}
 		removeDockerImage(c.image)

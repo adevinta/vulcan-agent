@@ -8,9 +8,8 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/gorilla/websocket"
-
 	"github.com/adevinta/vulcan-agent/log"
+	"github.com/gorilla/websocket"
 )
 
 // WSDialerWithRetries provides retries with backoff and jitter

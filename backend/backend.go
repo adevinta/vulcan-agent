@@ -51,7 +51,7 @@ type RunParams struct {
 // injected in their docker to run.
 type CheckVars = map[string]string
 
-// APIConfig defines addres where a component of the agent will be listening to
+// APIConfig defines address where a component of the agent will be listening to
 // the http requests sent by the checks running.
 type APIConfig struct {
 	Port  string `json:"port"`               // Port where the api for for the check should listen on
@@ -64,7 +64,7 @@ type Backend interface {
 	Run(ctx context.Context, params RunParams) (<-chan RunResult, error)
 }
 
-// ParseImage validates and enrich the image with domain (docker.io if domain missing), tag (latest if missing),
+// ParseImage validates and enrich the image with domain (docker.io if domain missing), tag (latest if missing),.
 func ParseImage(image string) (domain, path, tag string, err error) {
 	named, err := reference.ParseNormalizedNamed(image)
 	if err != nil {

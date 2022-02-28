@@ -13,6 +13,9 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/adevinta/vulcan-agent/config"
+	"github.com/adevinta/vulcan-agent/log"
+	"github.com/adevinta/vulcan-agent/queue"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/arn"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -20,10 +23,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/sqs"
 	"github.com/aws/aws-sdk-go/service/sqs/sqsiface"
-
-	"github.com/adevinta/vulcan-agent/config"
-	"github.com/adevinta/vulcan-agent/log"
-	"github.com/adevinta/vulcan-agent/queue"
 )
 
 const (
@@ -105,7 +104,6 @@ func NewReader(log log.Logger, cfg config.SQSReader, maxTimeNoRead *time.Duratio
 		lastMessageReceived:   nil,
 		nProcessingMessages:   0,
 	}, nil
-
 }
 
 // StartReading starts reading messages from the sqs queue. It reads messages
@@ -114,9 +112,9 @@ func NewReader(log log.Logger, cfg config.SQSReader, maxTimeNoRead *time.Duratio
 // use the returned channel to track when the reader stopped reading from the
 // queue and all the messages it is tracking are finished processing.
 func (r *Reader) StartReading(ctx context.Context) <-chan error {
-	var done = make(chan error, 1)
+	done := make(chan error, 1)
 	go r.read(ctx, done)
-	var finished = make(chan error, 1)
+	finished := make(chan error, 1)
 	go func() {
 		err := <-done
 		r.wg.Wait()

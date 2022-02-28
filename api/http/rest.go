@@ -10,10 +10,9 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	"github.com/julienschmidt/httprouter"
-
 	"github.com/adevinta/vulcan-agent/api"
 	"github.com/adevinta/vulcan-agent/log"
+	"github.com/julienschmidt/httprouter"
 )
 
 // ErrorResponse represents and http response when an error processing
@@ -65,7 +64,7 @@ func (re *REST) handleCheckUpdate(w http.ResponseWriter, r *http.Request, ps htt
 		writeJSONResponse(w, http.StatusBadRequest, ErrorResponse{err.Error()})
 		return
 	}
-	var state = new(api.CheckState)
+	state := new(api.CheckState)
 	err = json.Unmarshal(body, state)
 	if err != nil {
 		err = fmt.Errorf("error decoding check update request: %v", err.Error())

@@ -65,7 +65,7 @@ func New(endpoint string, retryer Retryer, timeout time.Duration) *Uploader {
 }
 
 // UpdateCheckReport stores the report of a check in the results service and
-// returns the link that can be used to retreive that report.
+// returns the link that can be used to retrieve that report.
 func (u *Uploader) UpdateCheckReport(checkID string, scanStartTime time.Time, report report.Report) (string, error) {
 	path := path.Join("report")
 	reportJSON, err := json.Marshal(&report)
@@ -99,7 +99,7 @@ func (u *Uploader) UpdateCheckReport(checkID string, scanStartTime time.Time, re
 }
 
 // UpdateCheckRaw stores the log of the execution of a check in results service
-// an returns a link that can be used to retreive the logs.
+// an returns a link that can be used to retrieve the logs.
 func (u *Uploader) UpdateCheckRaw(checkID string, scanStartTime time.Time, raw []byte) (string, error) {
 	if len(raw) > MaxEntitySize {
 		raw = raw[:MaxEntitySize-1]

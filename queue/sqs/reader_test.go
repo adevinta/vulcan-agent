@@ -210,7 +210,7 @@ func TestReader_StartReading(t *testing.T) {
 				wantMsgs := []queue.Message{
 					{Body: "msg1", TimesRead: 1},
 				}
-				diffMsgs := cmp.Diff(wantMsgs, *&gotMsgs)
+				diffMsgs := cmp.Diff(wantMsgs, gotMsgs)
 				diff := ""
 				if diffSqs != "" {
 					diff = fmt.Sprintf("SqsDiffs:%s\n", diffSqs)

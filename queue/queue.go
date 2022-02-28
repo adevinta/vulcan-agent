@@ -10,12 +10,10 @@ import (
 	"time"
 )
 
-var (
-	// ErrMaxTimeNoRead is returned by a queue reader when there were no
-	// messages available in the queue for more than the configured amount of
-	// time.
-	ErrMaxTimeNoRead = errors.New("no messages available in the queue for more than the max time")
-)
+// ErrMaxTimeNoRead is returned by a queue reader when there were no
+// messages available in the queue for more than the configured amount of
+// time.
+var ErrMaxTimeNoRead = errors.New("no messages available in the queue for more than the max time")
 
 // Message defines the information a queue reader passes to a processor about a
 // message.

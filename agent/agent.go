@@ -13,8 +13,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/julienschmidt/httprouter"
-
 	"github.com/adevinta/vulcan-agent/aborted"
 	"github.com/adevinta/vulcan-agent/api"
 	httpapi "github.com/adevinta/vulcan-agent/api/http"
@@ -29,6 +27,7 @@ import (
 	"github.com/adevinta/vulcan-agent/retryer"
 	"github.com/adevinta/vulcan-agent/stateupdater"
 	"github.com/adevinta/vulcan-agent/stream"
+	"github.com/julienschmidt/httprouter"
 )
 
 // Run executes the agent using the given config and backend.
@@ -129,7 +128,7 @@ func Run(cfg config.Config, b backend.Backend, l log.Logger) int {
 		Addr:    cfg.API.Port,
 		Handler: router,
 	}
-	var httpDone = make(chan error)
+	httpDone := make(chan error)
 	go func() {
 		err := srv.ListenAndServe()
 		httpDone <- err
