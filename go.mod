@@ -6,10 +6,10 @@ require (
 	github.com/BurntSushi/toml v1.1.0
 	github.com/adevinta/vulcan-metrics-client v1.0.0
 	github.com/adevinta/vulcan-report v1.0.0
-	github.com/aws/aws-sdk-go v1.44.21
-	github.com/docker/cli v20.10.16+incompatible
+	github.com/aws/aws-sdk-go v1.44.29
+	github.com/docker/cli v20.10.17+incompatible
 	github.com/docker/distribution v2.8.1+incompatible
-	github.com/docker/docker v20.10.16+incompatible
+	github.com/docker/docker v20.10.17+incompatible
 	github.com/google/go-cmp v0.5.8
 	github.com/google/uuid v1.3.0
 	github.com/gorilla/websocket v1.5.0
