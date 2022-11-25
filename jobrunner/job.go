@@ -26,14 +26,13 @@ type Job struct {
 
 func (j *Job) logTrace(msg, action string) string {
 	return fmt.Sprintf(
-		"event=checkTrace msg=\"%s\" action=%s checkID=%s target=%s assetType=%s checkImage=%s createTime=\"%s\" queuedTime=%d runningTime=%d",
+		"event=checkTrace msg=\"%s\" action=%s checkID=%s target=%s assetType=%s checkImage=%s queuedTime=%d runningTime=%d",
 		msg,
 		action,
 		j.CheckID,
 		j.Target,
 		j.AssetType,
 		j.Image,
-		j.StartTime,
 		j.RunTime-j.StartTime.Unix(),
 		time.Now().Unix()-j.RunTime,
 	)
