@@ -190,7 +190,8 @@ func (cr *Runner) runJob(m queue.Message, t interface{}, processed chan bool) {
 		cr.finishJob(j, "read", processed, true, err)
 		return
 	}
-	cr.Logger.Infof(j.logTrace("read check from queue", "read"))
+	readMsg := fmt.Sprintf("check read from queue #[%d]", m.TimesRead)
+	cr.Logger.Infof(j.logTrace(readMsg, "read"))
 	// Check if the message has been processed more than the maximum defined
 	// times.
 	if m.TimesRead > cr.maxMessageProcessedTimes {
