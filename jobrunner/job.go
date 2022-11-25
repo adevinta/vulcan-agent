@@ -5,6 +5,7 @@ Copyright 2021 Adevinta
 package jobrunner
 
 import (
+	"fmt"
 	"time"
 )
 
@@ -20,4 +21,20 @@ type Job struct {
 	Options      string            `json:"options"`       // Optional
 	RequiredVars []string          `json:"required_vars"` // Optional
 	Metadata     map[string]string `json:"metadata"`      // Optional
+	RunTime      time.Time
+}
+
+func (j *Job) logTrace(msg, action string) string {
+	return fmt.Sprintf(
+		"msg=\"%s\" action=%s checkID=%s target=%s assetType=%s checkImage=%s startTime=%s timeInQueue=%d runningTime=%s",
+		msg,
+		action,
+		j.CheckID,
+		j.Target,
+		j.AssetType,
+		j.Image,
+		j.StartTime,
+		time.Since(j.StartTime)*time.Second,
+		time.Since(j.RunTime)*time.Second,
+	)
 }
