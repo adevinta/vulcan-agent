@@ -24,10 +24,10 @@ type Job struct {
 	RunTime      int64
 }
 
-func (j *Job) logTrace(context, action string) string {
+func (j *Job) logTrace(msg, action string) string {
 	return fmt.Sprintf(
-		"event=checkTrace context=\"%s\" action=%s checkID=%s target=%s assetType=%s checkImage=%s createTime=\"%s\" queuedTime=%d runningTime=%d",
-		context,
+		"event=checkTrace msg=\"%s\" action=%s checkID=%s target=%s assetType=%s checkImage=%s createTime=\"%s\" queuedTime=%d runningTime=%d",
+		msg,
 		action,
 		j.CheckID,
 		j.Target,
