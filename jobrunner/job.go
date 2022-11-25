@@ -24,17 +24,18 @@ type Job struct {
 	RunTime      time.Time
 }
 
-func (j *Job) logTrace(msg, action string) string {
+func (j *Job) logTrace(context, action string) string {
+	t := time.Now()
 	return fmt.Sprintf(
-		"msg=\"%s\" action=%s checkID=%s target=%s assetType=%s checkImage=%s startTime=%s timeInQueue=%d runningTime=%s",
-		msg,
+		"event=checkTrace context='%s' action=%s checkID=%s target=%s assetType=%s checkImage=%s createTime='%s' queuedTime=%s runningTime=%s",
+		context,
 		action,
 		j.CheckID,
 		j.Target,
 		j.AssetType,
 		j.Image,
 		j.StartTime,
-		time.Since(j.StartTime)*time.Second,
-		time.Since(j.RunTime)*time.Second,
+		j.RunTime.Sub(j.StartTime)*time.Second,
+		t.Sub(j.RunTime)*time.Second,
 	)
 }
