@@ -6,7 +6,6 @@ package jobrunner
 
 import (
 	"context"
-	b64 "encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -312,8 +311,7 @@ func (cr *Runner) runJob(m queue.Message, t interface{}, processed chan bool) {
 			cr.finishJob(j, "linking_raw", processed, false, err)
 			return
 		}
-		b64LogsLink := b64.StdEncoding.EncodeToString([]byte(logsLink))
-		cr.Logger.Infof(j.logTrace(b64LogsLink, "raw_logs"))
+		cr.Logger.Infof(j.logTrace(logsLink, "raw_logs"))
 	}
 	// Check if the backend returned any not expected error while running the check.
 	execErr := res.Error
