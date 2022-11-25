@@ -25,6 +25,9 @@ type Job struct {
 }
 
 func (j *Job) logTrace(msg, action string) string {
+	if j.RunTime == 0 {
+		j.RunTime = time.Now().Unix()
+	}
 	return fmt.Sprintf(
 		"event=checkTrace checkID=%s target=%s assetType=%s checkImage=%s queuedTime=%d runningTime=%d action=%s msg=\"%s\"",
 		j.CheckID,
