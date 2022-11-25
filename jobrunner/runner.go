@@ -6,6 +6,7 @@ package jobrunner
 
 import (
 	"context"
+	b64 "encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -177,8 +178,9 @@ func (cr *Runner) ProcessMessage(msg queue.Message, token interface{}) <-chan bo
 }
 
 func (cr *Runner) runJob(m queue.Message, t interface{}, processed chan bool) {
-	j := &Job{}
-	j.RunTime = time.Now()
+	j := &Job{
+		RunTime: time.Now().Unix(),
+	}
 	// Check the token is valid.
 	if _, ok := t.(token); !ok {
 		cr.finishJob(j, "queued", processed, false, ErrInvalidToken)
@@ -310,7 +312,8 @@ func (cr *Runner) runJob(m queue.Message, t interface{}, processed chan bool) {
 			cr.finishJob(j, "linking_raw", processed, false, err)
 			return
 		}
-		cr.Logger.Infof(j.logTrace(logsLink, "raw_logs"))
+		b64LogsLink := b64.StdEncoding.EncodeToString([]byte(logsLink))
+		cr.Logger.Infof(j.logTrace(b64LogsLink, "raw_logs"))
 	}
 	// Check if the backend returned any not expected error while running the check.
 	execErr := res.Error

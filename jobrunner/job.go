@@ -21,13 +21,12 @@ type Job struct {
 	Options      string            `json:"options"`       // Optional
 	RequiredVars []string          `json:"required_vars"` // Optional
 	Metadata     map[string]string `json:"metadata"`      // Optional
-	RunTime      time.Time
+	RunTime      int64
 }
 
 func (j *Job) logTrace(context, action string) string {
-	t := time.Now()
 	return fmt.Sprintf(
-		"event=checkTrace context='%s' action=%s checkID=%s target=%s assetType=%s checkImage=%s createTime='%s' queuedTime=%s runningTime=%s",
+		"event=checkTrace context=\"%s\" action=%s checkID=%s target=%s assetType=%s checkImage=%s createTime=\"%s\" queuedTime=%d runningTime=%d",
 		context,
 		action,
 		j.CheckID,
@@ -35,7 +34,7 @@ func (j *Job) logTrace(context, action string) string {
 		j.AssetType,
 		j.Image,
 		j.StartTime,
-		j.RunTime.Sub(j.StartTime)*time.Second,
-		t.Sub(j.RunTime)*time.Second,
+		j.RunTime-j.StartTime.Unix(),
+		time.Now().Unix()-j.RunTime,
 	)
 }
