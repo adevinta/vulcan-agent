@@ -255,7 +255,7 @@ loop:
 				r.log.Errorf("unexpected error processing message with id: %s, message not deleted", *msg.MessageId)
 				break loop
 			}
-			r.log.Infof("deleting message with id %s", *msg.MessageId)
+			r.log.Debugf("deleting message with id %s", *msg.MessageId)
 			input := &sqs.DeleteMessageInput{
 				QueueUrl:      r.receiveParams.QueueUrl,
 				ReceiptHandle: msg.ReceiptHandle,

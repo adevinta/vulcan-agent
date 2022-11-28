@@ -190,8 +190,8 @@ func (cr *Runner) runJob(m queue.Message, t interface{}, processed chan bool) {
 		cr.finishJob(j, "read", processed, true, err)
 		return
 	}
-	readMsg := fmt.Sprintf("check read from queue #[%d]", m.TimesRead)
-	cr.Logger.Infof(j.logTrace(readMsg, "read"))
+	readMsg := fmt.Sprintf("check read from queue #[%d] times", m.TimesRead)
+	cr.Logger.Debugf(j.logTrace(readMsg, "read"))
 	// Check if the message has been processed more than the maximum defined
 	// times.
 	if m.TimesRead > cr.maxMessageProcessedTimes {
@@ -312,7 +312,7 @@ func (cr *Runner) runJob(m queue.Message, t interface{}, processed chan bool) {
 			cr.finishJob(j, "linking_raw", processed, false, err)
 			return
 		}
-		cr.Logger.Infof(j.logTrace(logsLink, "raw_logs"))
+		cr.Logger.Debugf(j.logTrace(logsLink, "raw_logs"))
 	}
 	// Check if the backend returned any not expected error while running the check.
 	execErr := res.Error
@@ -360,8 +360,7 @@ func (cr *Runner) runJob(m queue.Message, t interface{}, processed chan bool) {
 func (cr *Runner) finishJob(j *Job, checkState string, processed chan<- bool, delete bool, err error) {
 	checkID := j.CheckID
 	if err == nil && checkID != "" {
-		msg := fmt.Sprintf("finished running check %s with no error, mark to be deleted: %+v", checkID, delete)
-		cr.Logger.Infof(j.logTrace(msg, "finished"))
+		cr.Logger.Infof(j.logTrace("check finished successfully", "finished"))
 	}
 	if err != nil && checkID != "" {
 		cr.Logger.Errorf(j.logTrace(err.Error(), "error"))
