@@ -8,7 +8,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
 	"path"
@@ -170,7 +170,7 @@ func (u *Uploader) tryReadBody(res *http.Response) string {
 	if res.ContentLength == 0 {
 		return ""
 	}
-	content, err := ioutil.ReadAll(res.Body)
+	content, err := io.ReadAll(res.Body)
 	if err != nil {
 		u.log.Errorf("error reading body from results service %+v", err)
 		return ""

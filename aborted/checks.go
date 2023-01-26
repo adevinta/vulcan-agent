@@ -9,7 +9,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"sync"
@@ -96,7 +95,7 @@ func (c *Checks) get() ([]string, error) {
 				return err
 			}
 			ids = []string{""}
-			content, err := ioutil.ReadAll(resp.Body)
+			content, err := io.ReadAll(resp.Body)
 			if err != nil {
 				return err
 			}

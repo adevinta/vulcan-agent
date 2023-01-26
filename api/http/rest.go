@@ -7,7 +7,7 @@ package http
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 
 	"github.com/adevinta/vulcan-agent/api"
@@ -57,7 +57,7 @@ func NewREST(log log.Logger, a API, router *httprouter.Router) *REST {
 
 func (re *REST) handleCheckUpdate(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	id := ps.ByName("id")
-	body, err := ioutil.ReadAll(r.Body)
+	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		err = fmt.Errorf("error reading check update request: %v", err.Error())
 		re.log.Errorf("error: %+v", err)
