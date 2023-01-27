@@ -7,9 +7,9 @@ require (
 	github.com/adevinta/vulcan-metrics-client v1.0.0
 	github.com/adevinta/vulcan-report v1.0.0
 	github.com/aws/aws-sdk-go v1.44.149
-	github.com/docker/cli v20.10.21+incompatible
+	github.com/docker/cli v20.10.23+incompatible
 	github.com/docker/distribution v2.8.1+incompatible
-	github.com/docker/docker v20.10.21+incompatible
+	github.com/docker/docker v20.10.23+incompatible
 	github.com/google/go-cmp v0.5.9
 	github.com/google/uuid v1.3.0
 	github.com/gorilla/websocket v1.5.0
