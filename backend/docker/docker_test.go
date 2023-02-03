@@ -351,7 +351,10 @@ func TestIntegrationDockerFindImage(t *testing.T) {
 
 		// Check if the valid references are valid.
 		for _, v := range c.valids {
-			if exists, _ := b.imageExists(context.Background(), v); !exists {
+			exists, err := b.imageExists(context.Background(), v)
+			if err != nil {
+				t.Errorf("image:%s %s error:%+v", c.image, v, err)
+			} else if !exists {
 				t.Errorf("image:%s %s should exists", c.image, v)
 			}
 		}
@@ -367,8 +370,10 @@ func TestIntegrationDockerFindImage(t *testing.T) {
 
 			// Skip if it is valid.
 			if !valid {
-				// This reference should'n exists
-				if exists, _ := b.imageExists(context.Background(), r); exists {
+				exists, err := b.imageExists(context.Background(), r)
+				if err != nil {
+					t.Errorf("image:%s %s error:%+v", c.image, r, err)
+				} else if exists {
 					t.Errorf("image:%s %s should not exists", c.image, r)
 				}
 			}
