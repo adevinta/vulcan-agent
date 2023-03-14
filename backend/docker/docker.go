@@ -364,9 +364,12 @@ func (b *Docker) run(ctx context.Context, params backend.RunParams, res chan<- b
 		// finish  a time out.
 		b.log.Infof("check: %s timeout or aborted ensure container %s is stopped", params.CheckID, contID)
 		timeout := abortTimeout
-		b.cli.ContainerStop(context.Background(), contID, container.StopOptions{
+		err = b.cli.ContainerStop(context.Background(), contID, container.StopOptions{
 			Timeout: &timeout,
 		})
+		if err != nil {
+			b.log.Errorf("Unable to stop container %s, %+v", contID, err)
+		}
 	}
 
 	out, logErr := b.getContainerlogs(contID)
