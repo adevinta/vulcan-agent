@@ -22,6 +22,7 @@ import (
 	"github.com/docker/docker/client"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/uuid"
+	"github.com/sirupsen/logrus"
 )
 
 func TestIntegrationDockerRun(t *testing.T) {
@@ -127,7 +128,7 @@ func TestIntegrationDockerRunKillContainer(t *testing.T) {
 			PullPolicy: config.PullPolicyNever,
 		},
 		agentAddr: "an addr",
-		log:       &log.NullLog{},
+		log:       logrus.New(),
 		cli:       cli,
 	}
 	err = buildDockerImage("testdata/DockerfileSleep", "vulcan-check")
@@ -185,7 +186,7 @@ func TestIntegrationDockerDetectUnexpectedExit(t *testing.T) {
 			PullPolicy: config.PullPolicyNever,
 		},
 		agentAddr: "an addr",
-		log:       &log.NullLog{},
+		log:       logrus.New(),
 		cli:       cli,
 	}
 	err = buildDockerImage("testdata/DockerfileSleep", "vulcan-check")
