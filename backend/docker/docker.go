@@ -340,6 +340,7 @@ func (b *Docker) run(ctx context.Context, params backend.RunParams, res chan<- b
 	var exit int64
 	select {
 	case err = <-errC:
+		b.log.Errorf("containerWait err: err.Error(): %s ctx.Err(): %+v", err.Error(), ctx.Err())
 		if err.Error() == "" && ctx.Err() != nil {
 			err = ctx.Err()
 		}
