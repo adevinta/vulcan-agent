@@ -30,7 +30,7 @@ import (
 )
 
 const (
-	abortTimeout           = 5
+	abortTimeout           = 5 // Seconds.
 	defaultDockerIfaceName = "docker0"
 )
 

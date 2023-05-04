@@ -355,7 +355,8 @@ func TestIntegrationDockerFindImage(t *testing.T) {
 			exists, err := b.imageExists(context.Background(), v)
 			if err != nil {
 				t.Errorf("image:%s %s error:%+v", c.image, v, err)
-			} else if !exists {
+			}
+			if !exists {
 				t.Errorf("image:%s %s should exists", c.image, v)
 			}
 		}
@@ -374,7 +375,8 @@ func TestIntegrationDockerFindImage(t *testing.T) {
 				exists, err := b.imageExists(context.Background(), r)
 				if err != nil {
 					t.Errorf("image:%s %s error:%+v", c.image, r, err)
-				} else if exists {
+				}
+				if exists {
 					t.Errorf("image:%s %s should not exists", c.image, r)
 				}
 			}
