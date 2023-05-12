@@ -9,7 +9,7 @@ require (
 	github.com/aws/aws-sdk-go v1.44.256
 	github.com/docker/cli v23.0.5+incompatible
 	github.com/docker/distribution v2.8.2+incompatible
-	github.com/docker/docker v23.0.5+incompatible
+	github.com/docker/docker v23.0.6+incompatible
 	github.com/google/go-cmp v0.5.9
 	github.com/google/uuid v1.3.0
 	github.com/gorilla/websocket v1.5.0
