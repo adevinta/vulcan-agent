@@ -8,11 +8,12 @@ concurrent_jobs = 5
 # message. 0 means the agent will remain active forever.
 max_no_msgs_interval = 0
 
-[uploader]
-endpoint = "http://vulcan-results.example.com/v1/"
-retries = 3
-retry_interval = 2
-timeout = 10
+[s3_writer]
+link_base = "http://vulcan-results.example.com/v1/"
+bucket_reports = "my-vulcan-check-reports"
+bucket_logs = "my-vulcan-check-logs"
+region = "eu-west-1"
+s3_link = false
 
 [stream]
 endpoint = "ws://vulcan-stream.example.com/stream"

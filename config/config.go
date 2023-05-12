@@ -13,15 +13,15 @@ import (
 
 // Config represents the configuration for the agent.
 type Config struct {
-	Agent     AgentConfig    `toml:"agent"`
-	Stream    StreamConfig   `toml:"stream"`
-	Uploader  UploaderConfig `toml:"uploader"`
-	SQSReader SQSReader      `toml:"sqs_reader"`
-	SQSWriter SQSWriter      `toml:"sqs_writer"`
-	API       APIConfig      `toml:"api"`
-	Check     CheckConfig    `toml:"check"`
-	Runtime   RuntimeConfig  `toml:"runtime"`
-	DataDog   DatadogConfig  `toml:"datadog"`
+	Agent     AgentConfig   `toml:"agent"`
+	Stream    StreamConfig  `toml:"stream"`
+	SQSReader SQSReader     `toml:"sqs_reader"`
+	SQSWriter SQSWriter     `toml:"sqs_writer"`
+	S3Writer  S3Writer      `toml:"s3_writer"`
+	API       APIConfig     `toml:"api"`
+	Check     CheckConfig   `toml:"check"`
+	Runtime   RuntimeConfig `toml:"runtime"`
+	DataDog   DatadogConfig `toml:"datadog"`
 }
 
 // AgentConfig defines the higher level configuration for the agent.
@@ -45,14 +45,6 @@ type StreamConfig struct {
 	RetryInterval int    `toml:"retry_interval"`
 }
 
-// UploaderConfig defines the configuration for the results service.
-type UploaderConfig struct {
-	Endpoint      string `toml:"endpoint"`
-	Timeout       int    `toml:"timeout"`
-	Retries       int    `toml:"retries"`
-	RetryInterval int    `toml:"retry_interval"`
-}
-
 // SQSReader defines the config of sqs reader.
 type SQSReader struct {
 	Endpoint          string `toml:"endpoint"`
@@ -66,6 +58,15 @@ type SQSReader struct {
 type SQSWriter struct {
 	Endpoint string `toml:"endpoint"`
 	ARN      string `toml:"arn"`
+}
+
+// S3Writer defines the config params from the S3 writer.
+type S3Writer struct {
+	BucketReports string `toml:"bucket_reports"`
+	BucketLogs    string `toml:"bucket_logs"`
+	Region        string `toml:"region"`
+	LinkBase      string `toml:"link_base"`
+	S3Link        bool   `toml:"s3_link"`
 }
 
 // APIConfig defines the configuration for the agent API.

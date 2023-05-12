@@ -23,9 +23,9 @@ import (
 	"github.com/adevinta/vulcan-agent/metrics"
 	"github.com/adevinta/vulcan-agent/queue"
 	"github.com/adevinta/vulcan-agent/queue/sqs"
-	"github.com/adevinta/vulcan-agent/results"
 	"github.com/adevinta/vulcan-agent/retryer"
 	"github.com/adevinta/vulcan-agent/stateupdater"
+	"github.com/adevinta/vulcan-agent/storage/s3"
 	"github.com/adevinta/vulcan-agent/stream"
 	"github.com/julienschmidt/httprouter"
 )
@@ -35,13 +35,12 @@ import (
 // 0 if the agent terminated gracefully, either by receiving a TERM signal or
 // because it passed more time than configured without reading a message.
 func Run(cfg config.Config, b backend.Backend, l log.Logger) int {
-	// Build the results service.
-	timeout := time.Duration(cfg.Uploader.Timeout * int(time.Second))
-	interval := cfg.Uploader.RetryInterval
-	retries := cfg.Uploader.Retries
-	re := retryer.NewRetryer(retries, interval, l)
-	endpoint := cfg.Uploader.Endpoint
-	r := results.New(endpoint, re, timeout)
+	s3Reports := cfg.S3Writer.BucketReports
+	s3Logs := cfg.S3Writer.BucketLogs
+	s3Region := cfg.S3Writer.Region
+	linkBase := cfg.S3Writer.LinkBase
+	s3link := cfg.S3Writer.S3Link
+	s, err := s3.NewWriter(s3Reports, s3Logs, linkBase, s3Region, s3link, l)
 
 	// Build the sqs writer.
 	qw, err := sqs.NewWriter(cfg.SQSWriter.ARN, cfg.SQSWriter.Endpoint, l)
@@ -54,17 +53,17 @@ func Run(cfg config.Config, b backend.Backend, l log.Logger) int {
 	stateUpdater := stateupdater.New(qw)
 	updater := struct {
 		*stateupdater.Updater
-		*results.Uploader
-	}{stateUpdater, r}
+		*s3.Writer
+	}{stateUpdater, s}
 
 	var abortedChecks jobrunner.AbortedChecks
 
 	// Build the aborted checks component that will be used to know if a check
 	// has been aborted or not defore starting to execute it.
-	endpoint = cfg.Stream.QueryEndpoint
-	retries = cfg.Stream.Retries
-	interval = cfg.Stream.RetryInterval
-	re = retryer.NewRetryer(retries, interval, l)
+	endpoint := cfg.Stream.QueryEndpoint
+	retries := cfg.Stream.Retries
+	interval := cfg.Stream.RetryInterval
+	re := retryer.NewRetryer(retries, interval, l)
 	if endpoint == "" {
 		l.Infof("stream query_endpoint is empty, the agent will not check for aborted checks")
 		abortedChecks = &aborted.None{}

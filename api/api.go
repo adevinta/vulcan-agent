@@ -44,7 +44,7 @@ type Stats struct {
 // updates messages to the corresponding queue.
 type CheckStateUpdater interface {
 	UpdateState(stateupdater.CheckState) error
-	UpdateCheckReport(checkID string, startTime time.Time, report report.Report) (string, error)
+	UploadCheckData(checkID, kind string, startedAt time.Time, content []byte) (string, error)
 }
 
 // AgentStats defined the methods needed by the API to gather the information
@@ -85,7 +85,11 @@ func (a *API) CheckUpdate(c CheckState) error {
 	}
 	var rlink *string
 	if c.Report != nil {
-		link, err := a.stateUpdate.UpdateCheckReport(c.ID, c.Report.StartTime, *c.Report)
+		b, err := c.Report.MarshalJSONTimeAsString()
+		if err != nil {
+			return fmt.Errorf("unable to marshal check report, checkID %s, error: %w", c.ID, err)
+		}
+		link, err := a.stateUpdate.UploadCheckData(c.ID, "reports", c.Report.StartTime, b)
 		if err != nil {
 			err = fmt.Errorf("error uploading check report, checkID %s, error: %w", c.ID, err)
 			a.log.Errorf("%+v", err)

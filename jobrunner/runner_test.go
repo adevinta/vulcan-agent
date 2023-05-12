@@ -65,7 +65,7 @@ func (im *inMemChecksUpdater) UpdateState(cs stateupdater.CheckState) error {
 	return nil
 }
 
-func (im *inMemChecksUpdater) UpdateCheckRaw(checkID string, stime time.Time, raw []byte) (string, error) {
+func (im *inMemChecksUpdater) UploadCheckData(checkID string, kind string, stime time.Time, raw []byte) (string, error) {
 	if im.raws != nil {
 		im.raws = make([]CheckRaw, 0)
 	}
@@ -74,7 +74,7 @@ func (im *inMemChecksUpdater) UpdateCheckRaw(checkID string, stime time.Time, ra
 		CheckID:   checkID,
 		StartTime: stime,
 	})
-	return fmt.Sprintf("%s/logs", checkID), nil
+	return fmt.Sprintf("%s/%s", checkID, kind), nil
 }
 
 func (im *inMemChecksUpdater) CheckStatusTerminal(ID string) bool {
@@ -95,7 +95,7 @@ func (im *inMemChecksUpdater) DeleteCheckStatusTerminal(ID string) {
 
 type mockChecksUpdater struct {
 	stateUpdater         func(cs stateupdater.CheckState) error
-	checkRawUpdater      func(checkID string, stime time.Time, raw []byte) (string, error)
+	checkRawUpload       func(checkID, kind string, startedAt time.Time, content []byte) (string, error)
 	checkTerminalChecker func(ID string) bool
 	checkTerminalDeleter func(ID string)
 }
@@ -104,8 +104,8 @@ func (m *mockChecksUpdater) UpdateState(cs stateupdater.CheckState) error {
 	return m.stateUpdater(cs)
 }
 
-func (m *mockChecksUpdater) UpdateCheckRaw(checkID string, stime time.Time, raw []byte) (string, error) {
-	return m.checkRawUpdater(checkID, stime, raw)
+func (m *mockChecksUpdater) UploadCheckData(checkID, kind string, stime time.Time, raw []byte) (string, error) {
+	return m.checkRawUpload(checkID, kind, stime, raw)
 }
 
 func (m *mockChecksUpdater) CheckStatusTerminal(ID string) bool {
@@ -591,7 +591,7 @@ func TestRunner_ProcessMessage(t *testing.T) {
 					stateUpdater: func(cs stateupdater.CheckState) error {
 						return errUnexpectedTest
 					},
-					checkRawUpdater: func(checkID string, stime time.Time, raw []byte) (string, error) {
+					checkRawUpload: func(checkID string, kind string, stime time.Time, raw []byte) (string, error) {
 						return "link", nil
 					},
 					checkTerminalChecker: func(ID string) bool {

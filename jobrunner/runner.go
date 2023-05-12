@@ -87,7 +87,7 @@ func (c *checkAborter) Running() int {
 
 type CheckStateUpdater interface {
 	UpdateState(stateupdater.CheckState) error
-	UpdateCheckRaw(checkID string, startTime time.Time, raw []byte) (string, error)
+	UploadCheckData(checkID, kind string, startedAt time.Time, content []byte) (string, error)
 	CheckStatusTerminal(ID string) bool
 	DeleteCheckStatusTerminal(ID string)
 }
@@ -296,7 +296,7 @@ func (cr *Runner) runJob(m queue.Message, t interface{}, processed chan bool) {
 
 	// Try always to upload the logs of the check if present.
 	if res.Output != nil {
-		logsLink, err = cr.CheckUpdater.UpdateCheckRaw(j.CheckID, j.StartTime, res.Output)
+		logsLink, err = cr.CheckUpdater.UploadCheckData(j.CheckID, "logs", j.StartTime, res.Output)
 		if err != nil {
 			err = fmt.Errorf("error storing the logs of the check: %s, error %w", j.CheckID, err)
 			cr.finishJob(j, "uploading_raw", processed, false, err)
