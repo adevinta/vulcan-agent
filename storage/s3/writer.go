@@ -111,7 +111,7 @@ func (w *Writer) UploadCheckData(checkID, kind string, startedAt time.Time, cont
 	}
 
 	key = fmt.Sprintf("%s/%s.%s", kind, checkID, extension)
-	link = fmt.Sprintf("s3://%s/%s.%s", bucket, checkID, extension)
+	link = fmt.Sprintf("s3://%s/%s/%s.%s", bucket, kind, checkID, extension)
 	// This is for retrocompatibility with the vulcan-results clients.
 	if !w.cfg.S3Link {
 		key = fmt.Sprintf("%s/%s/%s.%s", dt, checkID, checkID, extension)
