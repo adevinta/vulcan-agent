@@ -157,7 +157,7 @@ func TestUploadCheckData(t *testing.T) {
 			contentType:   "test/json",
 			bucket:        "bucketReports",
 			s3link:        true,
-			expectedLink:  "s3://bucketReports/check123.json",
+			expectedLink:  "s3://bucketReports/reports/check123.json",
 			expectedError: nil,
 		},
 		{
@@ -167,7 +167,7 @@ func TestUploadCheckData(t *testing.T) {
 			contentType:   "test/plain",
 			bucket:        "bucketLogs",
 			s3link:        true,
-			expectedLink:  "s3://bucketLogs/check123.log",
+			expectedLink:  "s3://bucketLogs/logs/check123.log",
 			expectedError: nil,
 		},
 		{
