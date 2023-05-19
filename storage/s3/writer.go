@@ -28,11 +28,11 @@ const (
 var (
 	ErrReportsBucketNotDefined = errors.New("reports bucket must be defined")
 	ErrLogsBucketNotDefined    = errors.New("logs bucket must be defined")
-	ErrLinkBaseNotDefined      = errors.New("link base must be defined or s3 link enabled")
+	ErrLinkBaseNotDefined      = errors.New("link base must be defined or S3 link enabled")
 	ErrUnsupportedKind         = errors.New("unsupported kind")
 )
 
-// Writer writes messages to and AWS SQS queue.
+// Writer defines an AWS S3 writer.
 type Writer struct {
 	cfg config.S3Writer
 	svc s3iface.S3API
@@ -79,8 +79,6 @@ func NewWriter(cfg config.S3Writer, l log.Logger) (*Writer, error) {
 // Upload uploads the provided byte array data as a file to an S3 bucket.
 func (w *Writer) UploadCheckData(checkID, kind string, startedAt time.Time, content []byte) (string, error) {
 	st := time.Now()
-	// see http://docs.aws.amazon.com/athena/latest/ug/partitions.html
-	dt := startedAt.Format("dt=2006-01-02")
 	var bucket, key, contentType, extension, link string
 
 	switch kind {
@@ -100,6 +98,8 @@ func (w *Writer) UploadCheckData(checkID, kind string, startedAt time.Time, cont
 	link = fmt.Sprintf("s3://%s/%s/%s.%s", bucket, kind, checkID, extension)
 	// This is for retrocompatibility with the vulcan-results clients.
 	if !w.cfg.S3Link {
+		// see http://docs.aws.amazon.com/athena/latest/ug/partitions.html
+		dt := startedAt.Format("dt=2006-01-02")
 		key = fmt.Sprintf("%s/%s/%s.%s", dt, checkID, checkID, extension)
 		var err error
 		link, err = urlConcat(w.cfg.LinkBase, kind, key)
