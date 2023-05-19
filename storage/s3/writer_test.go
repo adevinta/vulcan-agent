@@ -94,7 +94,14 @@ func TestNewWriter(t *testing.T) {
 
 	for _, tc := range testCases {
 		l, _ := log.New(config.AgentConfig{})
-		writer, err := NewWriter(tc.bucketReports, tc.bucketLogs, tc.linkBase, tc.region, tc.s3link, l)
+		c := config.S3Writer{
+			BucketReports: tc.bucketReports,
+			BucketLogs:    tc.bucketLogs,
+			LinkBase:      tc.linkBase,
+			Region:        tc.region,
+			S3Link:        tc.s3link,
+		}
+		writer, err := NewWriter(c, l)
 		if err != tc.expectedErr {
 			t.Errorf("Expected error: %v, but got: %v", tc.expectedErr, err)
 		}
@@ -190,7 +197,7 @@ func TestUploadCheckData(t *testing.T) {
 			l, _ := log.New(config.AgentConfig{})
 			writer := &Writer{
 				svc: mockSvc,
-				cfg: Config{
+				cfg: config.S3Writer{
 					BucketReports: "bucketReports",
 					BucketLogs:    "bucketLogs",
 					LinkBase:      "https://www.example.com",

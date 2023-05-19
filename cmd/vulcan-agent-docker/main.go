@@ -12,6 +12,8 @@ import (
 	"github.com/adevinta/vulcan-agent/backend/docker"
 	"github.com/adevinta/vulcan-agent/config"
 	"github.com/adevinta/vulcan-agent/log"
+	"github.com/adevinta/vulcan-agent/storage"
+	"github.com/adevinta/vulcan-agent/storage/s3"
 )
 
 func main() {
@@ -37,9 +39,12 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Build the storage.
+	var s storage.Store
+	s, err = s3.NewWriter(cfg.S3Writer, l)
 	// NOTE: This is done in order to be able to return custom exit codes
 	// while still executing deferred functions as expected.
 	// Using os.Exit inside the main function is not an option:
 	// https://golang.org/pkg/os/#Exit
-	os.Exit(agent.Run(cfg, b, l))
+	os.Exit(agent.Run(cfg, s, b, l))
 }

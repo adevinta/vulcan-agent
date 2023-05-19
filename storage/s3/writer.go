@@ -13,6 +13,7 @@ import (
 	"path"
 	"time"
 
+	"github.com/adevinta/vulcan-agent/config"
 	"github.com/adevinta/vulcan-agent/log"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -31,38 +32,23 @@ var (
 	ErrUnsupportedKind         = errors.New("unsupported kind")
 )
 
-// Config represents the configuration options for S3Storage objects
-type Config struct {
-	BucketReports string
-	BucketLogs    string
-	LinkBase      string
-	S3Link        bool
-}
-
 // Writer writes messages to and AWS SQS queue.
 type Writer struct {
-	cfg Config
+	cfg config.S3Writer
 	svc s3iface.S3API
 	l   log.Logger
 }
 
 // NewWriter creates a new S3 writer.
-func NewWriter(bucketReports, bucketLogs, linkBase, region string, s3link bool, l log.Logger) (*Writer, error) {
-	if bucketReports == "" {
+func NewWriter(cfg config.S3Writer, l log.Logger) (*Writer, error) {
+	if cfg.BucketReports == "" {
 		return nil, ErrReportsBucketNotDefined
 	}
-	if bucketLogs == "" {
+	if cfg.BucketLogs == "" {
 		return nil, ErrLogsBucketNotDefined
 	}
-	if linkBase == "" && !s3link {
+	if cfg.LinkBase == "" && !cfg.S3Link {
 		return nil, ErrLinkBaseNotDefined
-	}
-
-	c := Config{
-		BucketReports: bucketReports,
-		BucketLogs:    bucketLogs,
-		LinkBase:      linkBase,
-		S3Link:        s3link,
 	}
 
 	sess, err := session.NewSession()
@@ -72,20 +58,20 @@ func NewWriter(bucketReports, bucketLogs, linkBase, region string, s3link bool, 
 	}
 
 	awsCfg := aws.NewConfig()
-	if region == "" {
-		region = DefaultAWSRegion
+	if cfg.Region == "" {
+		cfg.Region = DefaultAWSRegion
 	}
-	awsCfg = awsCfg.WithRegion(region)
+	awsCfg = awsCfg.WithRegion(cfg.Region)
 
 	s3Svc := s3.New(sess, awsCfg)
 
 	l.Infof(
 		"s3 writer created. Region [%s] LogsBucket [%s] ReportsBucket [%s] LinkBase [%s] S3Link [%t]",
-		region, bucketLogs, bucketReports, linkBase, s3link,
+		cfg.Region, cfg.BucketLogs, cfg.BucketReports, cfg.LinkBase, cfg.S3Link,
 	)
 	return &Writer{
 		svc: s3Svc,
-		cfg: c,
+		cfg: cfg,
 		l:   l,
 	}, nil
 }

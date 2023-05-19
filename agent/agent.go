@@ -25,7 +25,7 @@ import (
 	"github.com/adevinta/vulcan-agent/queue/sqs"
 	"github.com/adevinta/vulcan-agent/retryer"
 	"github.com/adevinta/vulcan-agent/stateupdater"
-	"github.com/adevinta/vulcan-agent/storage/s3"
+	"github.com/adevinta/vulcan-agent/storage"
 	"github.com/adevinta/vulcan-agent/stream"
 	"github.com/julienschmidt/httprouter"
 )
@@ -34,14 +34,7 @@ import (
 // When the function finishes it returns an exit code of
 // 0 if the agent terminated gracefully, either by receiving a TERM signal or
 // because it passed more time than configured without reading a message.
-func Run(cfg config.Config, b backend.Backend, l log.Logger) int {
-	s3Reports := cfg.S3Writer.BucketReports
-	s3Logs := cfg.S3Writer.BucketLogs
-	s3Region := cfg.S3Writer.Region
-	linkBase := cfg.S3Writer.LinkBase
-	s3link := cfg.S3Writer.S3Link
-	s, err := s3.NewWriter(s3Reports, s3Logs, linkBase, s3Region, s3link, l)
-
+func Run(cfg config.Config, s storage.Store, b backend.Backend, l log.Logger) int {
 	// Build the sqs writer.
 	qw, err := sqs.NewWriter(cfg.SQSWriter.ARN, cfg.SQSWriter.Endpoint, l)
 	if err != nil {
@@ -53,7 +46,7 @@ func Run(cfg config.Config, b backend.Backend, l log.Logger) int {
 	stateUpdater := stateupdater.New(qw)
 	updater := struct {
 		*stateupdater.Updater
-		*s3.Writer
+		storage.Store
 	}{stateUpdater, s}
 
 	var abortedChecks jobrunner.AbortedChecks
