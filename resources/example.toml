@@ -14,6 +14,8 @@ bucket_reports = "my-vulcan-check-reports"
 bucket_logs = "my-vulcan-check-logs"
 region = "eu-west-1"
 s3_link = false
+endpoint = ""
+path_style = true
 
 [stream]
 endpoint = "ws://vulcan-stream.example.com/stream"

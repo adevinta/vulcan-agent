@@ -67,6 +67,8 @@ type S3Writer struct {
 	Region        string `toml:"region"`
 	LinkBase      string `toml:"link_base"`
 	S3Link        bool   `toml:"s3_link"`
+	Endpoint      string `toml:"endpoint"`
+	PathStyle     bool   `toml:"path_style"`
 }
 
 // APIConfig defines the configuration for the agent API.
