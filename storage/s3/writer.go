@@ -68,7 +68,7 @@ func NewWriter(cfg config.S3Writer, l log.Logger) (*Writer, error) {
 
 	s3Svc := s3.New(sess, awsCfg)
 	l.Infof(
-		"s3 writer created. Region [%s] LogsBucket [%s] ReportsBucket [%s] LinkBase [%s] S3Link [%t] Endpoint [%s] PathStype [%t]",
+		"s3 writer created. Region [%s] LogsBucket [%s] ReportsBucket [%s] LinkBase [%s] S3Link [%t] Endpoint [%s] PathStyle [%t]",
 		cfg.Region, cfg.BucketLogs, cfg.BucketReports, cfg.LinkBase, cfg.S3Link, cfg.Endpoint, cfg.PathStyle,
 	)
 	return &Writer{
