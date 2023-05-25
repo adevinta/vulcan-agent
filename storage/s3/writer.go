@@ -62,13 +62,13 @@ func NewWriter(cfg config.S3Writer, l log.Logger) (*Writer, error) {
 		cfg.Region = DefaultAWSRegion
 	}
 	awsCfg = awsCfg.WithRegion(cfg.Region)
-	if len(cfg.Endpoint) > 0 {
+	if cfg.Endpoint != "" {
 		awsCfg = awsCfg.WithEndpoint(cfg.Endpoint).WithS3ForcePathStyle(cfg.PathStyle)
 	}
 
 	s3Svc := s3.New(sess, awsCfg)
 	l.Infof(
-		"s3 writer created. Region [%s] LogsBucket [%s] ReportsBucket [%s] LinkBase [%s] S3Link [%t] Endpoint [%s] PathStype[%v]",
+		"s3 writer created. Region [%s] LogsBucket [%s] ReportsBucket [%s] LinkBase [%s] S3Link [%t] Endpoint [%s] PathStype [%t]",
 		cfg.Region, cfg.BucketLogs, cfg.BucketReports, cfg.LinkBase, cfg.S3Link, cfg.Endpoint, cfg.PathStyle,
 	)
 	return &Writer{
