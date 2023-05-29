@@ -34,16 +34,6 @@ var (
 		Options:      "{}",
 		RequiredVars: []string{"var1"},
 	}
-	runJobFixedFixtureFixedCheckID = Job{
-		CheckID:      "428b4e49-c264-4c71-b5c4-fe08e8e6cfc7",
-		StartTime:    time.Now(),
-		Image:        "job1:latest",
-		Target:       "example.com",
-		Timeout:      60,
-		AssetType:    "hostname",
-		Options:      "{}",
-		RequiredVars: []string{"var1"},
-	}
 )
 
 type CheckRaw struct {
