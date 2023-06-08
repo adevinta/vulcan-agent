@@ -53,11 +53,26 @@ type CheckRaw struct {
 }
 
 type inMemChecksUpdater struct {
-	updates []stateupdater.CheckState
-	raws    []CheckRaw
+	updates        []stateupdater.CheckState
+	raws           []CheckRaw
+	terminalStatus map[string]stateupdater.CheckState
+	uploadLogError error
 }
 
 func (im *inMemChecksUpdater) UpdateState(cs stateupdater.CheckState) error {
+	status := ""
+	if cs.Status != nil {
+		status = *cs.Status
+	} else {
+		storedCheckStatus, ok := im.terminalStatus[cs.ID]
+		if ok {
+			status = *storedCheckStatus.Status
+		}
+	}
+	if _, ok := stateupdater.TerminalStatuses[status]; ok {
+		im.UpdateCheckStatusTerminal(cs)
+		return nil
+	}
 	if im.updates == nil {
 		im.updates = make([]stateupdater.CheckState, 0)
 	}
@@ -66,6 +81,10 @@ func (im *inMemChecksUpdater) UpdateState(cs stateupdater.CheckState) error {
 }
 
 func (im *inMemChecksUpdater) UploadCheckData(checkID string, kind string, stime time.Time, raw []byte) (string, error) {
+	if im.uploadLogError != nil {
+		return "", im.uploadLogError
+	}
+
 	if im.raws != nil {
 		im.raws = make([]CheckRaw, 0)
 	}
@@ -78,26 +97,57 @@ func (im *inMemChecksUpdater) UploadCheckData(checkID string, kind string, stime
 }
 
 func (im *inMemChecksUpdater) CheckStatusTerminal(ID string) bool {
-	for _, u := range im.updates {
-		status := ""
-		if u.Status != nil {
-			status = *u.Status
-		}
-		if _, ok := stateupdater.TerminalStatuses[status]; ok {
-			return true
-		}
-	}
-	return false
+	_, ok := im.terminalStatus[ID]
+	return ok
 }
 
-func (im *inMemChecksUpdater) DeleteCheckStatusTerminal(ID string) {
+func (im *inMemChecksUpdater) UpdateCheckStatusTerminal(s stateupdater.CheckState) {
+	if im.terminalStatus == nil {
+		im.terminalStatus = make(map[string]stateupdater.CheckState)
+	}
+	checkState, ok := im.terminalStatus[s.ID]
+	if !ok {
+		im.terminalStatus[s.ID] = s
+		return
+	}
+
+	// We update the existing CheckState
+	if s.Status != nil {
+		checkState.Status = s.Status
+	}
+	if s.Raw != nil {
+		checkState.Raw = s.Raw
+	}
+	if s.AgentID != nil {
+		checkState.AgentID = s.AgentID
+	}
+	if s.Progress != nil {
+		checkState.Progress = s.Progress
+	}
+	if s.Report != nil {
+		checkState.Report = s.Report
+	}
+
+	im.terminalStatus[checkState.ID] = checkState
+}
+
+func (im *inMemChecksUpdater) DeleteCheckStatusTerminal(ID string) error {
+	if im.updates == nil {
+		im.updates = make([]stateupdater.CheckState, 0)
+	}
+	terminalStatus, ok := im.terminalStatus[ID]
+	if ok {
+		im.updates = append(im.updates, terminalStatus)
+	}
+	return nil
 }
 
 type mockChecksUpdater struct {
 	stateUpdater         func(cs stateupdater.CheckState) error
 	checkRawUpload       func(checkID, kind string, startedAt time.Time, content []byte) (string, error)
 	checkTerminalChecker func(ID string) bool
-	checkTerminalDeleter func(ID string)
+	checkTerminalDeleter func(ID string) error
+	checkTerminalUpdater func(cs stateupdater.CheckState)
 }
 
 func (m *mockChecksUpdater) UpdateState(cs stateupdater.CheckState) error {
@@ -112,8 +162,12 @@ func (m *mockChecksUpdater) CheckStatusTerminal(ID string) bool {
 	return m.checkTerminalChecker(ID)
 }
 
-func (m *mockChecksUpdater) DeleteCheckStatusTerminal(ID string) {
-	m.checkTerminalDeleter(ID)
+func (m *mockChecksUpdater) DeleteCheckStatusTerminal(ID string) error {
+	return m.checkTerminalDeleter(ID)
+}
+
+func (m *mockChecksUpdater) UpdateCheckStatusTerminal(cs stateupdater.CheckState) {
+	m.checkTerminalUpdater(cs)
 }
 
 type mockBackend struct {
@@ -188,8 +242,8 @@ func TestRunner_ProcessMessage(t *testing.T) {
 				Tokens:         make(chan interface{}, 10),
 				Logger:         &log.NullLog{},
 				CheckUpdater: &inMemChecksUpdater{
-					updates: []stateupdater.CheckState{
-						{
+					terminalStatus: map[string]stateupdater.CheckState{
+						runJobFixture1.CheckID: {
 							ID:     runJobFixture1.CheckID,
 							Status: str2ptr(stateupdater.StatusFinished),
 						},
@@ -226,11 +280,8 @@ func TestRunner_ProcessMessage(t *testing.T) {
 				wantUpdates := []stateupdater.CheckState{
 					{
 						ID:     runJobFixture1.CheckID,
+						Raw:    &rawLink,
 						Status: str2ptr(stateupdater.StatusFinished),
-					},
-					{
-						ID:  runJobFixture1.CheckID,
-						Raw: &rawLink,
 					},
 				}
 				rawsDiff := cmp.Diff(wantRaws, gotRaws)
@@ -350,7 +401,6 @@ func TestRunner_ProcessMessage(t *testing.T) {
 				return fmt.Sprintf("%s%s", rawsDiff, updateDiff)
 			},
 		},
-
 		{
 			name: "UpdatesStateWhenCheckTimedout",
 			fields: fields{
@@ -424,7 +474,6 @@ func TestRunner_ProcessMessage(t *testing.T) {
 				return fmt.Sprintf("%s%s", rawsDiff, updateDiff)
 			},
 		},
-
 		{
 			name: "UpdatesStateWhenCheckCanceled",
 			fields: fields{
@@ -498,7 +547,6 @@ func TestRunner_ProcessMessage(t *testing.T) {
 				return fmt.Sprintf("%s%s", rawsDiff, updateDiff)
 			},
 		},
-
 		{
 			name: "DoesNotRunAbortedChecks",
 			fields: fields{
@@ -556,7 +604,6 @@ func TestRunner_ProcessMessage(t *testing.T) {
 				return fmt.Sprintf("%s%s", rawsDiff, updateDiff)
 			},
 		},
-
 		{
 			name: "DontDeleteWhenErrorUpdatingStatus",
 			fields: fields{
@@ -597,7 +644,10 @@ func TestRunner_ProcessMessage(t *testing.T) {
 					checkTerminalChecker: func(ID string) bool {
 						return false
 					},
-					checkTerminalDeleter: func(string) {
+					checkTerminalDeleter: func(string) error {
+						return nil
+					},
+					checkTerminalUpdater: func(cs stateupdater.CheckState) {
 					},
 				},
 			},
@@ -612,7 +662,6 @@ func TestRunner_ProcessMessage(t *testing.T) {
 				return ""
 			},
 		},
-
 		{
 			name: "UpdatesLogsWhenUnexpectedError",
 			fields: fields{
@@ -793,6 +842,62 @@ func TestRunner_ProcessMessage(t *testing.T) {
 						Status: &state,
 					},
 				}
+				rawsDiff := cmp.Diff(wantRaws, gotRaws)
+				updateDiff := cmp.Diff(wantUpdates, gotUpdates)
+				return fmt.Sprintf("%s%s", rawsDiff, updateDiff)
+			},
+		},
+		{
+			name: "FailUploadingLogs",
+			fields: fields{
+				Backend: &mockBackend{
+					CheckRunner: func(ctx context.Context, params backend.RunParams) (<-chan backend.RunResult, error) {
+						res := make(chan backend.RunResult)
+						go func() {
+							output, err := json.Marshal(params)
+							if err != nil {
+								panic(err)
+							}
+							results := backend.RunResult{
+								Output: output,
+							}
+							res <- results
+						}()
+						return res, nil
+					},
+				},
+				cAborter: &checkAborter{
+					cancels: sync.Map{},
+				},
+				aborted:        &inMemAbortedChecks{make(map[string]struct{}), nil},
+				defaultTimeout: time.Duration(10 * time.Second),
+				Tokens:         make(chan interface{}, 10),
+				Logger:         &log.NullLog{},
+				CheckUpdater: &inMemChecksUpdater{
+					terminalStatus: map[string]stateupdater.CheckState{
+						runJobFixture1.CheckID: {
+							ID:     runJobFixture1.CheckID,
+							Status: str2ptr(stateupdater.StatusFinished),
+						},
+					},
+					uploadLogError: errors.New("error uploading logs"),
+				},
+			},
+			args: args{
+				msg: queue.Message{
+					Body: string(mustMarshal(runJobFixture1)),
+				},
+				token: token{},
+			},
+			want: false,
+			wantState: func(r *Runner) string {
+				updater := r.CheckUpdater.(*inMemChecksUpdater)
+				gotRaws := updater.raws
+				var wantRaws []CheckRaw
+				gotUpdates := updater.updates
+				// No update with a FAILED terminal status will be sent because
+				// it will be reattempted.
+				var wantUpdates []stateupdater.CheckState
 				rawsDiff := cmp.Diff(wantRaws, gotRaws)
 				updateDiff := cmp.Diff(wantUpdates, gotUpdates)
 				return fmt.Sprintf("%s%s", rawsDiff, updateDiff)

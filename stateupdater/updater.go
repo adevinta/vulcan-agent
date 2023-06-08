@@ -66,6 +66,21 @@ func New(qw QueueWriter) *Updater {
 
 // UpdateState updates the state of tha check into the underlaying queue.
 func (u *Updater) UpdateState(s CheckState) error {
+	status := ""
+	if s.Status != nil {
+		status = *s.Status
+	} else {
+		storedCheckStatus, ok := u.terminalChecks.Load(s.ID)
+		if ok {
+			status = *(storedCheckStatus.(CheckState)).Status
+		}
+	}
+	if _, ok := TerminalStatuses[status]; ok {
+		u.UpdateCheckStatusTerminal(s)
+		return nil
+	}
+
+	// We continue with non-terminal states.
 	body, err := json.Marshal(s)
 	if err != nil {
 		return err
@@ -73,13 +88,6 @@ func (u *Updater) UpdateState(s CheckState) error {
 	err = u.qw.Write(string(body))
 	if err != nil {
 		return err
-	}
-	status := ""
-	if s.Status != nil {
-		status = *s.Status
-	}
-	if _, ok := TerminalStatuses[status]; ok {
-		u.terminalChecks.Store(s.ID, struct{}{})
 	}
 	return nil
 }
@@ -93,6 +101,49 @@ func (u *Updater) CheckStatusTerminal(ID string) bool {
 
 // DeleteCheckStatusTerminal deletes the information about a check that the
 // Updater is storing.
-func (u *Updater) DeleteCheckStatusTerminal(ID string) {
+func (u *Updater) DeleteCheckStatusTerminal(ID string) error {
+	checkStatus, ok := u.terminalChecks.Load(ID)
+	if ok {
+		// Write the terminal status in the queue
+		body, err := json.Marshal(checkStatus)
+		if err != nil {
+			return err
+		}
+		err = u.qw.Write(string(body))
+		if err != nil {
+			return err
+		}
+	}
 	u.terminalChecks.Delete(ID)
+	return nil
+}
+
+// UpdateCheckStatusTerminal update and keep the information about a check in a
+// status terminal.
+func (u *Updater) UpdateCheckStatusTerminal(s CheckState) {
+	checkState, ok := u.terminalChecks.Load(s.ID)
+
+	if !ok {
+		u.terminalChecks.Store(s.ID, s)
+		return
+	}
+	cs := checkState.(CheckState)
+
+	if s.Status != nil {
+		cs.Status = s.Status
+	}
+	if cs.Raw != nil {
+		cs.Raw = s.Raw
+	}
+	if cs.AgentID != nil {
+		cs.AgentID = s.AgentID
+	}
+	if cs.Progress != nil {
+		cs.Progress = s.Progress
+	}
+	if cs.Report != nil {
+		cs.Report = s.Report
+	}
+
+	u.terminalChecks.Store(s.ID, cs)
 }

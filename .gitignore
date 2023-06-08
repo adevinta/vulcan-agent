@@ -1,6 +1,9 @@
 *.swp
 *.swo
 .vscode/
+.idea/
 local.toml
 local_autoscaling.toml
 vendor/
+.DS_Store
+

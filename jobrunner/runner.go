@@ -89,7 +89,8 @@ type CheckStateUpdater interface {
 	UpdateState(stateupdater.CheckState) error
 	UploadCheckData(checkID, kind string, startedAt time.Time, content []byte) (string, error)
 	CheckStatusTerminal(ID string) bool
-	DeleteCheckStatusTerminal(ID string)
+	DeleteCheckStatusTerminal(ID string) error
+	UpdateCheckStatusTerminal(stateupdater.CheckState)
 }
 
 // AbortedChecks defines the shape of the component needed by a Runner in order
@@ -207,6 +208,13 @@ func (cr *Runner) runJob(m queue.Message, t interface{}, processed chan bool) {
 			return
 		}
 		cr.Logger.Errorf("error max processed times exceeded for check: %s", j.CheckID)
+		// We delete the status terminal and send the final status to the writer.
+		err = cr.CheckUpdater.DeleteCheckStatusTerminal(j.CheckID)
+		if err != nil {
+			err = fmt.Errorf("error deleting the terminal status of the check: %s, error: %w", j.CheckID, err)
+			cr.finishJob(j, status, processed, false, err)
+			return
+		}
 		cr.finishJob(j, status, processed, true, nil)
 		return
 	}
@@ -288,20 +296,16 @@ func (cr *Runner) runJob(m queue.Message, t interface{}, processed chan bool) {
 	// so we remove it from aborter.
 	cr.cAborter.Remove(j.CheckID)
 
-	// We query if the check has sent any status update with a terminal status.
-	isterminal := cr.CheckUpdater.CheckStatusTerminal(j.CheckID)
-	// We signal the CheckUpdater that we don't need it to store that
-	// information anymore.
-	cr.CheckUpdater.DeleteCheckStatusTerminal(j.CheckID)
-
 	// Try always to upload the logs of the check if present.
 	if res.Output != nil {
 		logsLink, err = cr.CheckUpdater.UploadCheckData(j.CheckID, "logs", j.StartTime, res.Output)
 		if err != nil {
 			err = fmt.Errorf("error storing the logs of the check: %s, error %w", j.CheckID, err)
 			cr.finishJob(j, "uploading_raw", processed, false, err)
+			// We return to retry the log upload later.
 			return
 		}
+
 		// Set the link for the logs of the check.
 		err = cr.CheckUpdater.UpdateState(stateupdater.CheckState{
 			ID:  j.CheckID,
@@ -310,10 +314,14 @@ func (cr *Runner) runJob(m queue.Message, t interface{}, processed chan bool) {
 		if err != nil {
 			err = fmt.Errorf("error updating the link to the logs of the check: %s, error: %w", j.CheckID, err)
 			cr.finishJob(j, "linking_raw", processed, false, err)
-			return
 		}
+
 		cr.Logger.Debugf(j.logTrace(logsLink, "raw_logs"))
 	}
+
+	// We query if the check has sent any status update with a terminal status.
+	isTerminal := cr.CheckUpdater.CheckStatusTerminal(j.CheckID)
+
 	// Check if the backend returned any not expected error while running the check.
 	execErr := res.Error
 	if execErr != nil &&
@@ -339,11 +347,19 @@ func (cr *Runner) runJob(m queue.Message, t interface{}, processed chan bool) {
 		status = stateupdater.StatusFailed
 	}
 	// Ensure the check sent a status update with a terminal status.
-	if status == "" && !isterminal {
+	if status == "" && !isTerminal {
 		status = stateupdater.StatusFailed
 	}
 	// If the check was not canceled or aborted we just finish its execution.
 	if status == "" {
+		// We signal the CheckUpdater that we don't need it to store that
+		// information anymore.
+		err = cr.CheckUpdater.DeleteCheckStatusTerminal(j.CheckID)
+		if err != nil {
+			err = fmt.Errorf("error deleting the terminal status of the check: %s, error: %w", j.CheckID, err)
+			cr.finishJob(j, status, processed, false, err)
+			return
+		}
 		cr.finishJob(j, "completed", processed, true, err)
 		return
 	}
@@ -353,6 +369,14 @@ func (cr *Runner) runJob(m queue.Message, t interface{}, processed chan bool) {
 	})
 	if err != nil {
 		err = fmt.Errorf("error updating the status of the check: %s, error: %w", j.CheckID, err)
+	}
+	// We signal the CheckUpdater that we don't need it to store that
+	// information anymore.
+	err = cr.CheckUpdater.DeleteCheckStatusTerminal(j.CheckID)
+	if err != nil {
+		err = fmt.Errorf("error deleting the terminal status of the check: %s, error: %w", j.CheckID, err)
+		cr.finishJob(j, status, processed, false, err)
+		return
 	}
 	cr.finishJob(j, "finished", processed, err == nil, err)
 }
