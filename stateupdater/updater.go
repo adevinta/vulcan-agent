@@ -129,6 +129,7 @@ func (u *Updater) UpdateCheckStatusTerminal(s CheckState) {
 	}
 	cs := checkState.(CheckState)
 
+	// We update the existing CheckState
 	if s.Status != nil {
 		cs.Status = s.Status
 	}
