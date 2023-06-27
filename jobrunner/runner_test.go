@@ -131,7 +131,7 @@ func (im *inMemChecksUpdater) UpdateCheckStatusTerminal(s stateupdater.CheckStat
 	im.terminalStatus[checkState.ID] = checkState
 }
 
-func (im *inMemChecksUpdater) DeleteCheckStatusTerminal(ID string) error {
+func (im *inMemChecksUpdater) FlushCheckStatus(ID string) error {
 	if im.updates == nil {
 		im.updates = make([]stateupdater.CheckState, 0)
 	}
@@ -162,7 +162,7 @@ func (m *mockChecksUpdater) CheckStatusTerminal(ID string) bool {
 	return m.checkTerminalChecker(ID)
 }
 
-func (m *mockChecksUpdater) DeleteCheckStatusTerminal(ID string) error {
+func (m *mockChecksUpdater) FlushCheckStatus(ID string) error {
 	return m.checkTerminalDeleter(ID)
 }
 

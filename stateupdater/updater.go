@@ -64,7 +64,9 @@ func New(qw QueueWriter) *Updater {
 	return &Updater{qw, sync.Map{}}
 }
 
-// UpdateState updates the state of tha check into the underlaying queue.
+// UpdateState updates the state of tha check into the underlying queue.
+// If the state is terminal it keeps the state in memory locally. If the state
+// is not terminal it sends the state to queue.
 func (u *Updater) UpdateState(s CheckState) error {
 	status := ""
 	if s.Status != nil {
@@ -99,9 +101,10 @@ func (u *Updater) CheckStatusTerminal(ID string) bool {
 	return ok
 }
 
-// DeleteCheckStatusTerminal deletes the information about a check that the
-// Updater is storing.
-func (u *Updater) DeleteCheckStatusTerminal(ID string) error {
+// FlushCheckStatus deletes the information about a check that the
+// Updater is storing. Before deleting the check from the "list" of finished
+// checks, it writes the state of the check to the queue.
+func (u *Updater) FlushCheckStatus(ID string) error {
 	checkStatus, ok := u.terminalChecks.Load(ID)
 	if ok {
 		// Write the terminal status in the queue

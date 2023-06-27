@@ -89,7 +89,7 @@ type CheckStateUpdater interface {
 	UpdateState(stateupdater.CheckState) error
 	UploadCheckData(checkID, kind string, startedAt time.Time, content []byte) (string, error)
 	CheckStatusTerminal(ID string) bool
-	DeleteCheckStatusTerminal(ID string) error
+	FlushCheckStatus(ID string) error
 	UpdateCheckStatusTerminal(stateupdater.CheckState)
 }
 
@@ -208,8 +208,8 @@ func (cr *Runner) runJob(m queue.Message, t interface{}, processed chan bool) {
 			return
 		}
 		cr.Logger.Errorf("error max processed times exceeded for check: %s", j.CheckID)
-		// We delete the status terminal and send the final status to the writer.
-		err = cr.CheckUpdater.DeleteCheckStatusTerminal(j.CheckID)
+		// We flush the terminal status and send the final status to the writer.
+		err = cr.CheckUpdater.FlushCheckStatus(j.CheckID)
 		if err != nil {
 			err = fmt.Errorf("error deleting the terminal status of the check: %s, error: %w", j.CheckID, err)
 			cr.finishJob(j, status, processed, false, err)
@@ -353,8 +353,8 @@ func (cr *Runner) runJob(m queue.Message, t interface{}, processed chan bool) {
 	// If the check was not canceled or aborted we just finish its execution.
 	if status == "" {
 		// We signal the CheckUpdater that we don't need it to store that
-		// information anymore.
-		err = cr.CheckUpdater.DeleteCheckStatusTerminal(j.CheckID)
+		// information any more.
+		err = cr.CheckUpdater.FlushCheckStatus(j.CheckID)
 		if err != nil {
 			err = fmt.Errorf("error deleting the terminal status of the check: %s, error: %w", j.CheckID, err)
 			cr.finishJob(j, status, processed, false, err)
@@ -371,8 +371,8 @@ func (cr *Runner) runJob(m queue.Message, t interface{}, processed chan bool) {
 		err = fmt.Errorf("error updating the status of the check: %s, error: %w", j.CheckID, err)
 	}
 	// We signal the CheckUpdater that we don't need it to store that
-	// information anymore.
-	err = cr.CheckUpdater.DeleteCheckStatusTerminal(j.CheckID)
+	// information any more.
+	err = cr.CheckUpdater.FlushCheckStatus(j.CheckID)
 	if err != nil {
 		err = fmt.Errorf("error deleting the terminal status of the check: %s, error: %w", j.CheckID, err)
 		cr.finishJob(j, status, processed, false, err)
