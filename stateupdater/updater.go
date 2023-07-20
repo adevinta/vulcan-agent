@@ -46,9 +46,9 @@ type CheckState struct {
 	Progress *float32 `json:"progress,omitempty"`
 }
 
-// Update updates the fields of a check state with the values from the check state
-// passed as argument.
-func (cs *CheckState) Update(s CheckState) {
+// Merge overrides the fields of the receiver with the value of the non nil
+// fields of the provided CheckState.
+func (cs *CheckState) Merge(s CheckState) {
 	if s.Status != nil {
 		cs.Status = s.Status
 	}
@@ -153,7 +153,7 @@ func (u *Updater) UpdateCheckStatusTerminal(s CheckState) {
 	cs := checkState.(CheckState)
 
 	// We update the existing CheckState.
-	cs.Update(s)
+	cs.Merge(s)
 
 	u.terminalChecks.Store(s.ID, cs)
 }

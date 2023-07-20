@@ -112,7 +112,7 @@ func (im *inMemChecksUpdater) UpdateCheckStatusTerminal(s stateupdater.CheckStat
 	}
 
 	// We update the existing CheckState.
-	cs.Update(s)
+	cs.Merge(s)
 
 	im.terminalStatus[cs.ID] = cs
 }
