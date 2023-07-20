@@ -46,6 +46,26 @@ type CheckState struct {
 	Progress *float32 `json:"progress,omitempty"`
 }
 
+// Update updates the fields of a check state with the values from the check state
+// passed as argument.
+func (cs *CheckState) Update(s CheckState) {
+	if s.Status != nil {
+		cs.Status = s.Status
+	}
+	if s.Raw != nil {
+		cs.Raw = s.Raw
+	}
+	if s.AgentID != nil {
+		cs.AgentID = s.AgentID
+	}
+	if s.Progress != nil {
+		cs.Progress = s.Progress
+	}
+	if s.Report != nil {
+		cs.Report = s.Report
+	}
+}
+
 // QueueWriter defines the queue services used by and
 // updater to send the status updates.
 type QueueWriter interface {
@@ -132,22 +152,8 @@ func (u *Updater) UpdateCheckStatusTerminal(s CheckState) {
 	}
 	cs := checkState.(CheckState)
 
-	// We update the existing CheckState
-	if s.Status != nil {
-		cs.Status = s.Status
-	}
-	if cs.Raw != nil {
-		cs.Raw = s.Raw
-	}
-	if cs.AgentID != nil {
-		cs.AgentID = s.AgentID
-	}
-	if cs.Progress != nil {
-		cs.Progress = s.Progress
-	}
-	if cs.Report != nil {
-		cs.Report = s.Report
-	}
+	// We update the existing CheckState.
+	cs.Update(s)
 
 	u.terminalChecks.Store(s.ID, cs)
 }

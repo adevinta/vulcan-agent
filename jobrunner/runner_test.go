@@ -105,30 +105,16 @@ func (im *inMemChecksUpdater) UpdateCheckStatusTerminal(s stateupdater.CheckStat
 	if im.terminalStatus == nil {
 		im.terminalStatus = make(map[string]stateupdater.CheckState)
 	}
-	checkState, ok := im.terminalStatus[s.ID]
+	cs, ok := im.terminalStatus[s.ID]
 	if !ok {
 		im.terminalStatus[s.ID] = s
 		return
 	}
 
-	// We update the existing CheckState
-	if s.Status != nil {
-		checkState.Status = s.Status
-	}
-	if s.Raw != nil {
-		checkState.Raw = s.Raw
-	}
-	if s.AgentID != nil {
-		checkState.AgentID = s.AgentID
-	}
-	if s.Progress != nil {
-		checkState.Progress = s.Progress
-	}
-	if s.Report != nil {
-		checkState.Report = s.Report
-	}
+	// We update the existing CheckState.
+	cs.Update(s)
 
-	im.terminalStatus[checkState.ID] = checkState
+	im.terminalStatus[cs.ID] = cs
 }
 
 func (im *inMemChecksUpdater) FlushCheckStatus(ID string) error {
