@@ -125,6 +125,12 @@ func (r *Reader) StartReading(ctx context.Context) <-chan error {
 }
 
 func (r *Reader) read(ctx context.Context, done chan<- error) {
+	if r.Processor == nil {
+		done <- errors.New("message processor is missing")
+		close(done)
+		return
+	}
+
 	var (
 		err error
 		msg *sqs.Message
@@ -276,6 +282,12 @@ func (r *Reader) LastMessageReceived() *time.Time {
 	r.RLock()
 	defer r.RUnlock()
 	return r.lastMessageReceived
+}
+
+// SetMessageProcessor sets the queue's message processor. It must be
+// set before calling [*Reader.StartReading].
+func (r *Reader) SetMessageProcessor(p queue.MessageProcessor) {
+	r.Processor = p
 }
 
 func validateSQSMessage(msg *sqs.Message) error {
