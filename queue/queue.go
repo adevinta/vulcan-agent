@@ -25,15 +25,31 @@ type Message struct {
 	TimesRead int
 }
 
-// MessageProcessor defines the methods needed by a queue reader implementation
-// to process the messages it reads.
+// MessageProcessor defines the methods needed by a queue reader
+// implementation to process the messages it reads.
+//
+// FreeTokens returns a channel that can be used to get a token to
+// call ProcessMessage.
+//
+// ProcessMessage processes the message given a token that must be
+// obtained from FreeTokens. ProcessMessage is in charge of returning
+// the token once the message has been processed. When the message has
+// been processed the returned channel will indicate if the message
+// must be deleted from the queue or not.
 type MessageProcessor interface {
-	FreeTokens() chan interface{}
-	ProcessMessage(msg Message, token interface{}) <-chan bool
+	FreeTokens() chan any
+	ProcessMessage(msg Message, token any) <-chan bool
 }
 
-// Reader defines the functions that all the concrete queue reader
-// implementations must fullfil.
+// Reader defines the methods that all the queue reader
+// implementations must fulfill.
+//
+// StartReading starts reading messages from the queue. The caller can
+// use the returned channel to track when the reader stops reading
+// from the queue and all the messages have been processed.
+//
+// LastMessageReceived returns the time when the last message was
+// read. If no messages have been read it returns nil.
 type Reader interface {
 	StartReading(ctx context.Context) <-chan error
 	LastMessageReceived() *time.Time
