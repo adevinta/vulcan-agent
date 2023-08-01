@@ -59,3 +59,35 @@ type Reader interface {
 type Writer interface {
 	Write(body string) error
 }
+
+// discard is a [MessageProcessor] that discards all the received
+// messages.
+type discard struct {
+	tokens chan any
+}
+
+// Discard returns a [MessageProcessor] that discards all the received
+// messages.
+func Discard() MessageProcessor {
+	tokens := make(chan any, 1)
+	tokens <- struct{}{}
+	return &discard{
+		tokens: tokens,
+	}
+}
+
+// FreeTokens returns a channel that can be used to get a free token
+// to call [discard.ProcessMessage].
+func (proc *discard) FreeTokens() chan any {
+	return proc.tokens
+}
+
+// ProcessMessage discards the message and returns the provided token.
+func (proc *discard) ProcessMessage(msg Message, token any) <-chan bool {
+	c := make(chan bool)
+	go func() {
+		proc.tokens <- token
+		c <- true
+	}()
+	return c
+}
