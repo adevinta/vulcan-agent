@@ -94,7 +94,7 @@ loop:
 
 // process waits for a message and processes it using the provided
 // [queue.MessageProcessor]. If it is not able to get a message in the
-// time specified by [ChanQueue.MaxTimeNoRead] it returns a
+// time specified by ChanQueue.MaxTimeNoRead it returns a
 // [queue.ErrMaxTimeNoRead] error.
 func (q *ChanQueue) process(ctx context.Context, token any) (err error) {
 	select {
