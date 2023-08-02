@@ -110,11 +110,11 @@ func newJobRunner(cfg config.Config, back backend.Backend, updater jobrunner.Che
 		err           error
 		abortedChecks jobrunner.AbortedChecks
 	)
-	re := retryer.NewRetryer(cfg.Stream.Retries, cfg.Stream.RetryInterval, logger)
 	if cfg.Stream.QueryEndpoint == "" {
 		logger.Infof("stream query_endpoint is empty, the agent will not check for aborted checks")
 		abortedChecks = &aborted.None{}
 	} else {
+		re := retryer.NewRetryer(cfg.Stream.Retries, cfg.Stream.RetryInterval, logger)
 		abortedChecks, err = aborted.New(logger, cfg.Stream.QueryEndpoint, re)
 		if err != nil {
 			return nil, fmt.Errorf("create aborted checks: %w", err)
@@ -150,8 +150,8 @@ func run(cfg config.Config, jrunner *jobrunner.Runner, updater api.CheckStateUpd
 		logger.Infof("check cancel stream disabled")
 	} else {
 		re := retryer.NewRetryer(cfg.Stream.Retries, cfg.Stream.RetryInterval, logger)
-		// metrics is passed as a message processor to allow
-		// aborting checks.
+		// metrics is passed as a stream message processor to
+		// abort checks.
 		stream := stream.New(logger, metrics, re, cfg.Stream.Endpoint)
 		streamDone, err = stream.ListenAndProcess(ctx)
 		if err != nil {
