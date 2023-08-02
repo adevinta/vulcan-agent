@@ -75,11 +75,6 @@ type AgentQueueReader interface {
 // implementations. The fields [config.Config.SQSReader] and
 // [config.Config.SQSWriter] must be zero.
 func RunWithQueues(cfg config.Config, store storage.Store, back backend.Backend, statesQueue queue.Writer, jobsQueue AgentQueueReader, logger log.Logger) int {
-	if (cfg.SQSReader != config.SQSReader{} || cfg.SQSWriter != config.SQSWriter{}) {
-		logger.Errorf("agent.RunWithQueues does not allow SQS configurations")
-		return 1
-	}
-
 	// Build state updater.
 	stateUpdater := stateupdater.New(statesQueue)
 	updater := struct {
