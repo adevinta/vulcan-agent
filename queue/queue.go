@@ -77,7 +77,7 @@ func Discard() MessageProcessor {
 }
 
 // FreeTokens returns a channel that can be used to get a free token
-// to call [discard.ProcessMessage].
+// to call ProcessMessage.
 func (proc *discard) FreeTokens() chan any {
 	return proc.tokens
 }
