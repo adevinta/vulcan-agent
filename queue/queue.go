@@ -86,7 +86,11 @@ func (proc *discard) FreeTokens() chan any {
 func (proc *discard) ProcessMessage(msg Message, token any) <-chan bool {
 	c := make(chan bool)
 	go func() {
-		proc.tokens <- token
+		select {
+		case proc.tokens <- token:
+		default:
+			panic("could not return token")
+		}
 		c <- true
 	}()
 	return c
