@@ -43,10 +43,3 @@ type Reader interface {
 type Writer interface {
 	Write(body string) error
 }
-
-// ReadWriter is the interface that groups the [Reader] and [Writer]
-// interfaces.
-type ReadWriter interface {
-	Reader
-	Writer
-}
