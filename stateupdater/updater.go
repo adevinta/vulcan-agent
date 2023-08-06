@@ -7,8 +7,6 @@ package stateupdater
 import (
 	"encoding/json"
 	"sync"
-
-	"github.com/adevinta/vulcan-agent/queue"
 )
 
 const (
@@ -68,12 +66,11 @@ func (cs *CheckState) Merge(s CheckState) {
 	}
 }
 
-// QueueWriter defines the queue services used by an updater to send
-// the status updates.
-//
-// Deprecated: As of vulcan-agent v1.2.0, this interface is simply an
-// alias of [queue.Writer].
-type QueueWriter = queue.Writer
+// QueueWriter defines the queue services used by and
+// updater to send the status updates.
+type QueueWriter interface {
+	Write(body string) error
+}
 
 // Updater takes a CheckState an send its to a queue using the defined queue
 // writer.
