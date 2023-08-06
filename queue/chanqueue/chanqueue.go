@@ -1,3 +1,7 @@
+/*
+Copyright 2023 Adevinta
+*/
+
 // Package chanqueue provides a local queue based on channels.
 package chanqueue
 
