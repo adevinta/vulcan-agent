@@ -1,3 +1,7 @@
+/*
+Copyright 2023 Adevinta
+*/
+
 package queue
 
 import (
