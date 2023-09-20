@@ -6,7 +6,7 @@ require (
 	github.com/BurntSushi/toml v1.2.1
 	github.com/adevinta/vulcan-metrics-client v1.0.1
 	github.com/adevinta/vulcan-report v1.0.0
-	github.com/aws/aws-sdk-go v1.44.313
+	github.com/aws/aws-sdk-go v1.45.13
 	github.com/docker/cli v24.0.5+incompatible
 	github.com/docker/distribution v2.8.2+incompatible
 	github.com/docker/docker v24.0.5+incompatible
