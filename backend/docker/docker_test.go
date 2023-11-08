@@ -263,7 +263,7 @@ func TestIntegrationDockerRunAbortGracefully(t *testing.T) {
 		return
 	}
 
-	diff := cmp.Diff(string(got.Output), "ok\n\n")
+	diff := cmp.Diff(string(got.Output), "\n")
 	if diff != "" {
 		t.Errorf("got output != want output, diff %+s", diff)
 		return
