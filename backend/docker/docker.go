@@ -29,6 +29,7 @@ import (
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/api/types/network"
+	"github.com/docker/docker/api/types/registry"
 	"github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/stdcopy"
 	"github.com/docker/go-connections/tlsconfig"
@@ -44,7 +45,7 @@ type RunConfig struct {
 	ContainerConfig       *container.Config
 	HostConfig            *container.HostConfig
 	NetConfig             *network.NetworkingConfig
-	ContainerStartOptions types.ContainerStartOptions
+	ContainerStartOptions container.StartOptions
 }
 
 // ConfigUpdater allows to update the docker configuration just before the container creation.
@@ -65,11 +66,11 @@ type Retryer interface {
 }
 
 type registryAuths struct {
-	auths map[string]*types.AuthConfig
+	auths map[string]*registry.AuthConfig
 	mu    sync.RWMutex
 }
 
-func (b *registryAuths) fetchAuth(domain string) (*types.AuthConfig, bool) {
+func (b *registryAuths) fetchAuth(domain string) (*registry.AuthConfig, bool) {
 	domain = getAuthDomain(domain)
 
 	b.mu.RLock()
@@ -78,7 +79,7 @@ func (b *registryAuths) fetchAuth(domain string) (*types.AuthConfig, bool) {
 	return auth, ok
 }
 
-func (b *registryAuths) storeAuth(domain string, auth *types.AuthConfig) {
+func (b *registryAuths) storeAuth(domain string, auth *registry.AuthConfig) {
 	domain = getAuthDomain(domain)
 
 	b.mu.Lock()
@@ -198,7 +199,7 @@ func NewBackend(log log.Logger, cfg config.Config, updater ConfigUpdater) (backe
 		retryer:   re,
 		updater:   updater,
 		auths: registryAuths{
-			auths: make(map[string]*types.AuthConfig),
+			auths: make(map[string]*registry.AuthConfig),
 		},
 	}
 
@@ -216,7 +217,7 @@ func NewBackend(log log.Logger, cfg config.Config, updater ConfigUpdater) (backe
 
 	// Eager validation of the configured registries.
 	for _, a := range b.config.Auths {
-		auth := &types.AuthConfig{
+		auth := &registry.AuthConfig{
 			Username:      a.User,
 			Password:      a.Pass,
 			ServerAddress: a.Server,
@@ -256,7 +257,7 @@ func defaultClientOptions() *flags.ClientOptions {
 }
 
 // addRegistryAuth adds the auth to the map only if valid.
-func (b *Docker) addRegistryAuth(domain string, auth *types.AuthConfig) error {
+func (b *Docker) addRegistryAuth(domain string, auth *registry.AuthConfig) error {
 	if domain == "" {
 		b.log.Debugf("skipping to validate empty auth")
 		return nil
@@ -283,7 +284,7 @@ func (b *Docker) addRegistryAuth(domain string, auth *types.AuthConfig) error {
 // getRegistryAuth tries to find an authentication for the domain
 // First it looks into the provided authenticated servers
 // If not avialiable it looks into the docker system stored credentials.
-func (b *Docker) getRegistryAuth(domain string) *types.AuthConfig {
+func (b *Docker) getRegistryAuth(domain string) *registry.AuthConfig {
 	auth, ok := b.auths.fetchAuth(domain)
 	if ok {
 		return auth
@@ -306,7 +307,7 @@ func (b *Docker) getRegistryAuth(domain string) *types.AuthConfig {
 	return auth
 }
 
-func (b *Docker) getStoredCredentials(domain string) *types.AuthConfig {
+func (b *Docker) getStoredCredentials(domain string) *registry.AuthConfig {
 	domain = getAuthDomain(domain)
 
 	buf := new(bytes.Buffer)
@@ -332,7 +333,7 @@ func (b *Docker) getStoredCredentials(domain string) *types.AuthConfig {
 	}
 
 	// Copy all the data (same struct in different packages).
-	return &types.AuthConfig{
+	return &registry.AuthConfig{
 		Username:      a.Username,
 		Password:      a.Password,
 		Auth:          a.Auth,
@@ -371,7 +372,7 @@ func (b *Docker) run(ctx context.Context, params backend.RunParams, res chan<- b
 		return
 	}
 	defer func() {
-		removeOpts := types.ContainerRemoveOptions{Force: true}
+		removeOpts := container.RemoveOptions{Force: true}
 		removeErr := b.cli.ContainerRemove(context.Background(), contID, removeOpts)
 		if removeErr != nil {
 			b.log.Errorf("error removing container %s: %v", params.CheckID, err)
@@ -435,7 +436,7 @@ func (b *Docker) run(ctx context.Context, params backend.RunParams, res chan<- b
 }
 
 func (b *Docker) getContainerlogs(ID string) ([]byte, error) {
-	logOpts := types.ContainerLogsOptions{
+	logOpts := container.LogsOptions{
 		ShowStdout: true,
 		ShowStderr: true,
 	}
@@ -557,7 +558,7 @@ func (b *Docker) getRunConfig(params backend.RunParams) RunConfig {
 		},
 		HostConfig:            &container.HostConfig{},
 		NetConfig:             &network.NetworkingConfig{},
-		ContainerStartOptions: types.ContainerStartOptions{},
+		ContainerStartOptions: container.StartOptions{},
 	}
 }
 

@@ -17,7 +17,7 @@ import (
 	"github.com/adevinta/vulcan-agent/backend"
 	"github.com/adevinta/vulcan-agent/config"
 	"github.com/adevinta/vulcan-agent/log"
-	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/client"
 	"github.com/google/go-cmp/cmp"
@@ -162,7 +162,7 @@ func TestIntegrationDockerRunKillContainer(t *testing.T) {
 		Key:   "label",
 		Value: fmt.Sprintf("CheckID=%s", id.String()),
 	})
-	containers, err := cli.ContainerList(context.Background(), types.ContainerListOptions{Filters: filter})
+	containers, err := cli.ContainerList(context.Background(), container.ListOptions{Filters: filter})
 	if err != nil {
 		t.Errorf("error listing running containers: %+v", err)
 		return
@@ -274,7 +274,7 @@ func TestIntegrationDockerRunAbortGracefully(t *testing.T) {
 		Key:   "label",
 		Value: fmt.Sprintf("CheckID=%s", id.String()),
 	})
-	containers, err := cli.ContainerList(context.Background(), types.ContainerListOptions{Filters: filter})
+	containers, err := cli.ContainerList(context.Background(), container.ListOptions{Filters: filter})
 	if err != nil {
 		t.Errorf("error listing running containers: %+v", err)
 		return
@@ -443,7 +443,7 @@ func waitForContainer(cli client.APIClient, id string) (string, error) {
 	})
 	exit := false
 	for !exit {
-		containers, err := cli.ContainerList(context.Background(), types.ContainerListOptions{Filters: filter})
+		containers, err := cli.ContainerList(context.Background(), container.ListOptions{Filters: filter})
 		if err != nil {
 			err = fmt.Errorf("error listing running containers: %+v", err)
 			return "", err
