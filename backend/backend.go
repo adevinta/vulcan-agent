@@ -9,7 +9,7 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/docker/distribution/reference"
+	"github.com/distribution/reference"
 )
 
 // Constants defining environment variables that a check expects.
