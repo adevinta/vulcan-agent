@@ -1,5 +1,13 @@
-dist: bionic
 language: go
+os: linux
+
+jobs:
+  include:
+    - name: bionic
+      dist: bionic
+    - name: jammy
+      dist: jammy
+
 services:
   - docker
 go:
