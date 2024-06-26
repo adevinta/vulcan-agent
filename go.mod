@@ -9,7 +9,7 @@ require (
 	github.com/aws/aws-sdk-go v1.54.0
 	github.com/distribution/reference v0.6.0
 	github.com/docker/cli v25.0.5+incompatible
-	github.com/docker/docker v25.0.5+incompatible
+	github.com/docker/docker v27.0.1+incompatible
 	github.com/docker/go-connections v0.5.0
 	github.com/google/go-cmp v0.6.0
 	github.com/google/uuid v1.6.0
@@ -42,6 +42,7 @@ require (
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/matttproud/golang_protobuf_extensions v1.0.1 // indirect
 	github.com/miekg/pkcs11 v1.0.2 // indirect
+	github.com/moby/docker-image-spec v1.3.1 // indirect
 	github.com/moby/sys/sequential v0.5.0 // indirect
 	github.com/moby/term v0.0.0-20210619224110-3f7ff695adc6 // indirect
 	github.com/morikuni/aec v1.0.0 // indirect
