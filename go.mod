@@ -9,7 +9,7 @@ require (
 	github.com/aws/aws-sdk-go v1.55.5
 	github.com/distribution/reference v0.6.0
 	github.com/docker/cli v28.5.0+incompatible
-	github.com/docker/docker v28.5.0+incompatible
+	github.com/docker/docker v28.5.1+incompatible
 	github.com/docker/go-connections v0.6.0
 	github.com/google/go-cmp v0.7.0
 	github.com/google/uuid v1.6.0
